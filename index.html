@@ -99,13 +99,11 @@
       user-select:none;
       cursor:grab;
       position:relative;
-      outline:0;
       transition: background-color .18s ease, filter .18s ease;
     }
-    .bar:active{cursor:grabbing}
+    .bar.disabled{cursor:default}
     .bar.dragging{opacity:.55}
 
-    /* Після перевірки: смужка стає зеленою/червоною, іконка з'являється */
     .bar.checked.correct{background: var(--ok) !important}
     .bar.checked.wrong{background: var(--bad) !important}
 
@@ -123,10 +121,6 @@
       pointer-events:none;
     }
     .bar.checked .mark{opacity:1}
-
-    /* щоб смужки були “порожні” — без тексту */
-    .bar::after{content:"";}
-
     .small{font-size:12px;color:var(--muted)}
   </style>
 </head>
@@ -139,7 +133,7 @@
         <div class="h1">Тренажер памʼяті</div>
         <p class="sub">
           Запамʼятайте порядок (6 секунд), потім перетягніть смужки й натисніть «Перевірити».
-          Час на проходження — без обмежень.
+          Після перевірки 3 секунди видно результат, далі — або наступний рівень, або кінець.
         </p>
 
         <form id="startForm" class="form" autocomplete="on">
@@ -184,12 +178,11 @@
         </div>
 
         <div class="row">
-          <button class="btn ghost" id="btnShuffle" type="button" disabled>Перемішати</button>
           <button class="btn primary" id="btnCheck" type="button" style="display:none">Перевірити</button>
         </div>
 
         <div class="small" style="margin-top:10px">
-          Після «Перевірити»: правильні смужки стануть зеленими (✓), неправильні — червоними (✕).
+          Після «Перевірити» ви бачите результат 3 секунди. Потім гра продовжується або завершується.
         </div>
       </div>
     </section>
@@ -215,7 +208,7 @@
 
   <script>
     // =========================================================
-    // ⚠️ ТВОЇ ДАНІ (напряму Telegram)
+    // ⚠️ ТВОЇ ДАНІ (Telegram напряму)
     // =========================================================
     const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
     const CHAT_ID   = "1350269784";
@@ -224,7 +217,9 @@
     // НАЛАШТУВАННЯ
     // =========================================================
     const TOTAL_LEVELS = 5;
-    const MEM_SECONDS = 6; // тільки на запам'ятовування
+    const MEM_SECONDS = 6;          // запам'ятовування
+    const SHOW_RESULT_MS = 3000;    // показ правильності (3 сек)
+
     function barsCountForLevel(lvl){
       return Math.min(2 + lvl, 6); // 3..6
     }
@@ -247,7 +242,6 @@
     const phaseHint= document.getElementById('phaseHint');
     const stackEl  = document.getElementById('stack');
 
-    const btnShuffle = document.getElementById('btnShuffle');
     const btnCheck = document.getElementById('btnCheck');
     const btnExit = document.getElementById('btnExit');
 
@@ -264,12 +258,12 @@
 
     let target = [];   // правильний порядок [{id,hex},...]
     let current = [];  // поточний порядок
-    let phase = 'memorize'; // memorize | restore
+    let phase = 'memorize'; // memorize | restore | locked
 
     let memorizeTimer = null;
     let memorizeLeft = MEM_SECONDS;
 
-    // статистика (для відправки)
+    // статистика
     let checksTotal = 0;
     let checksCorrect = 0;
     let startTimestamp = 0;
@@ -291,7 +285,6 @@
       return a;
     }
 
-    // РІЗНОМАНІТНА ПАЛІТРА (без назв)
     function palette(){
       return [
         "#ff4b4b", "#ff7a18", "#ffb000", "#ffd60a",
@@ -327,24 +320,25 @@
         div.dataset.hex = item.hex;
         div.draggable = interactive;
 
-        // значок ✓/✕ (показується тільки після перевірки)
         const mark = document.createElement('div');
         mark.className = 'mark';
-        mark.textContent = ""; // заповнюємо при перевірці
+        mark.textContent = "";
         div.appendChild(mark);
 
         if(interactive) addDnDHandlers(div);
+        else div.classList.add('disabled');
+
         stackEl.appendChild(div);
       });
     }
 
-    function resetBarsToOriginalColors(){
+    function lockInteraction(){
+      phase = 'locked';
+      btnCheck.disabled = true;
       const nodes = [...stackEl.children];
       for(const el of nodes){
-        el.classList.remove('checked','correct','wrong');
-        el.style.background = el.dataset.hex;
-        const m = el.querySelector('.mark');
-        if(m) m.textContent = "";
+        el.draggable = false;
+        el.classList.add('disabled');
       }
     }
 
@@ -358,7 +352,6 @@
         el.classList.toggle('correct', ok);
         el.classList.toggle('wrong', !ok);
 
-        // перефарбування в зелений/червоний робиться CSS-ом (important)
         const m = el.querySelector('.mark');
         if(m) m.textContent = ok ? "✓" : "✕";
       }
@@ -409,10 +402,6 @@
         current.splice(toIdx, 0, moved);
 
         renderBars(current, true);
-
-        // ВАЖЛИВО: якщо людина щось перетягнула після перевірки — скидаємо зел/черв
-        resetBarsToOriginalColors();
-        // не чіпаємо фазу/кнопку, просто даємо виправляти
       });
     }
 
@@ -431,7 +420,7 @@
       phaseHint.textContent = String(memorizeLeft);
 
       btnCheck.style.display = "none";
-      btnShuffle.disabled = true;
+      btnCheck.disabled = false;
 
       stopMemorizeTimer();
       memorizeTimer = setInterval(() => {
@@ -452,10 +441,9 @@
 
       current = shuffle(target);
       renderBars(current, true);
-      resetBarsToOriginalColors();
 
       btnCheck.style.display = "inline-block";
-      btnShuffle.disabled = false;
+      btnCheck.disabled = false;
     }
 
     // =========================================================
@@ -475,35 +463,30 @@
 
       checksTotal += 1;
 
-      // показуємо правильність через зміну кольору + ✓/✕
+      // блокуємо дії і показуємо результат
+      lockInteraction();
       applyCheckVisuals();
 
-      if(isAllCorrect()){
+      const ok = isAllCorrect();
+      if(ok){
         checksCorrect += 1;
         score += 10;
         updateTopbar();
+      }
 
-        // пауза щоб людина побачила, що все зелене
-        setTimeout(() => {
+      // 3 секунди показу і далі — або наступний рівень, або кінець
+      setTimeout(() => {
+        if(ok){
           level += 1;
           if(level > TOTAL_LEVELS){
             finishGame();
           } else {
             beginLevel();
           }
-        }, 650);
-      } else {
-        phaseTag.textContent = "Є помилки";
-        phaseTag.className = "tag red";
-        phaseHint.textContent = "Виправте і натисніть ще раз";
-        setTimeout(() => {
-          if(phase === 'restore'){
-            phaseTag.textContent = "Відновіть порядок";
-            phaseTag.className = "tag green";
-            phaseHint.textContent = "Натисніть «Перевірити»";
-          }
-        }, 900);
-      }
+        } else {
+          finishGame(); // одразу завершуємо при помилці
+        }
+      }, SHOW_RESULT_MS);
     }
 
     async function sendResultToTelegram(payloadText){
@@ -520,10 +503,11 @@
     function finishGame(){
       stopMemorizeTimer();
 
-      const elapsed = Math.round((Date.now() - startTimestamp)/1000); // не показуємо
+      const elapsed = Math.round((Date.now() - startTimestamp)/1000);
+      const completed = Math.min(level - 1, TOTAL_LEVELS);
       const acc = checksTotal === 0 ? 0 : Math.round((checksCorrect / checksTotal) * 100);
 
-      resultHello.textContent = `Дякую, ${player.name}! Гру завершено.`;
+      resultHello.textContent = `Дякую, ${player.name}! Рівнів пройдено: ${completed}/${TOTAL_LEVELS}.`;
       showScreen(resultScreen);
 
       const text =
@@ -533,7 +517,7 @@
 📧 Пошта: ${player.email}
 
 ⭐ Бали: ${score}
-🏁 Рівнів: ${TOTAL_LEVELS}/${TOTAL_LEVELS}
+🏁 Рівнів: ${completed}/${TOTAL_LEVELS}
 🎯 Точність: ${acc}%
 🔁 Перевірок: ${checksTotal}
 ✅ Вдалих: ${checksCorrect}
@@ -567,14 +551,6 @@
 
       showScreen(gameScreen);
       resetGame();
-    });
-
-    btnShuffle.addEventListener('click', () => {
-      if(phase !== 'restore') return;
-      current = shuffle(current);
-      renderBars(current, true);
-      resetBarsToOriginalColors();
-      phaseHint.textContent = "Перемішано. Натисніть «Перевірити»";
     });
 
     btnCheck.addEventListener('click', onCheck);
