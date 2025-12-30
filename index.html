@@ -33,7 +33,6 @@
       background:rgba(255,255,255,.10);color:#fff;cursor:pointer;
       display:grid;place-items:center;font-weight:800;
     }
-    .btn-icon:hover{background:rgba(255,255,255,.18)}
 
     .form{max-width:420px;margin:0 auto;display:grid;gap:10px;text-align:left}
     label{font-size:13px;color:var(--muted)}
@@ -45,9 +44,7 @@
 
     .btn{border:0;border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer;font-size:15px}
     .btn.primary{background:var(--accent);color:#fff}
-    .btn.primary:hover{filter:brightness(.95)}
     .btn.ghost{background:#eef2f7;color:#111}
-    .btn.ghost:hover{filter:brightness(.98)}
     .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
     .tag{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:#eef2f7;color:#111}
@@ -55,21 +52,25 @@
     .tag.green{background:rgba(57,179,107,.12);color:#1f7e45}
 
     .phase{font-size:14px;color:var(--muted);display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:10px}
-
     .stack-area{display:flex;justify-content:center;align-items:center;padding:18px 10px;min-height:320px}
     .stack{
-      width:min(280px, 80vw);
+      width:min(300px, 88vw);
       border-radius:14px;overflow:hidden;
       box-shadow:0 10px 30px rgba(0,0,0,.08);
       border:1px solid #e7eaf0;background:#fff;
+      position:relative;
     }
     .bar{
       height:56px;
       display:flex;align-items:center;justify-content:center;
-      user-select:none;cursor:grab;position:relative;
-      transition: background-color .18s ease;
+      user-select:none;
+      position:relative;
+      transition: background-color .18s ease, transform .12s ease;
+      touch-action:none; /* ВАЖЛИВО для мобільного drag */
     }
+    .bar.grabbable{cursor:grab}
     .bar.disabled{cursor:default}
+    .bar.dragging{opacity:.85; transform: scale(1.02)}
     .bar.checked.correct{background: var(--ok) !important}
     .bar.checked.wrong{background: var(--bad) !important}
 
@@ -82,18 +83,37 @@
     }
     .bar.checked .mark{opacity:1}
 
+    /* Плейсхолдер куди вставиться елемент */
+    .placeholder{
+      height:56px;
+      border:2px dashed rgba(0,0,0,.18);
+      background:rgba(0,0,0,.04);
+    }
+
+    /* “плаваюча” копія під пальцем */
+    .ghost{
+      position:fixed;
+      left:0; top:0;
+      width:min(300px, 88vw);
+      height:56px;
+      border-radius:0;
+      z-index:9999;
+      pointer-events:none;
+      box-shadow:0 14px 30px rgba(0,0,0,.18);
+      transform: translate(-9999px,-9999px);
+    }
+
     .small{font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
   <div class="wrap">
 
-    <!-- START -->
     <section id="startScreen" class="screen active">
       <div class="card center">
         <div class="h1">Тренажер памʼяті</div>
         <p class="sub">
-          6 секунд на запамʼятовування. Потім перетягніть смужки й натисніть «Перевірити».
+          6 секунд на запамʼятовування. Потім перетягніть смужки пальцем/мишкою й натисніть «Перевірити».
           Після перевірки 3 секунди видно ✓/✕ і одразу наступний рівень.
         </p>
 
@@ -112,7 +132,6 @@
       </div>
     </section>
 
-    <!-- GAME -->
     <section id="gameScreen" class="screen">
       <div class="topbar">
         <div class="top-left"><div class="pill">Бали: <b id="score">0</b></div></div>
@@ -140,7 +159,6 @@
       </div>
     </section>
 
-    <!-- RESULT -->
     <section id="resultScreen" class="screen">
       <div class="card center">
         <div class="h1">Результат</div>
@@ -155,8 +173,10 @@
 
   </div>
 
+  <div id="ghost" class="ghost"></div>
+
   <script>
-    // ===== Telegram (встав свій токен тут локально) =====
+    // ===== Telegram (встав свій токен локально) =====
     const BOT_TOKEN = "PASTE_YOUR_BOT_TOKEN_HERE";
     const CHAT_ID   = "1350269784";
 
@@ -167,8 +187,8 @@
     const POINTS_PER_CORRECT = 5;
 
     // анти-“схожі” кольори
-    const MIN_DIST_ANY = 120; // між будь-якими двома кольорами в рівні
-    const MIN_DIST_ADJ = 160; // між сусідами
+    const MIN_DIST_ANY = 120;
+    const MIN_DIST_ADJ = 160;
 
     function barsCountForLevel(lvl){ return Math.min(2 + lvl, 6); }
 
@@ -195,6 +215,8 @@
     const btnPlayAgain = document.getElementById('btnPlayAgain');
     const btnBackHome  = document.getElementById('btnBackHome');
 
+    const ghostEl = document.getElementById('ghost');
+
     // ===== State =====
     let player = { name:'', email:'' };
     let level = 1;
@@ -217,7 +239,6 @@
       [startScreen, gameScreen, resultScreen].forEach(s => s.classList.remove('active'));
       which.classList.add('active');
     }
-
     function shuffle(arr){
       const a = arr.slice();
       for(let i=a.length-1;i>0;i--){
@@ -226,7 +247,6 @@
       }
       return a;
     }
-
     function updateTopbar(){
       scoreEl.textContent = String(score);
       levelLabelEl.textContent = `${level}/${TOTAL_LEVELS}`;
@@ -243,9 +263,7 @@
       const dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b;
       return Math.sqrt(dr*dr + dg*dg + db*db);
     }
-
     function palette(){
-      // підібрана різноманітна палітра (унікальні значення)
       return [
         "#E53935","#D81B60","#8E24AA","#5E35B1","#3949AB",
         "#1E88E5","#039BE5","#00ACC1","#00897B","#43A047",
@@ -254,14 +272,8 @@
         "#AB47BC","#EC407A","#42A5F5","#26A69A"
       ];
     }
-
     function sampleUniqueNonSimilarColors(count){
-      let pal = palette().slice();
-
-      // перемішуємо, щоб вибір був випадковий
-      pal = shuffle(pal);
-
-      // 1) беремо кольори так, щоб вони НЕ були схожими між собою
+      let pal = shuffle(palette().slice());
       const picked = [];
       for(const c of pal){
         if(picked.length >= count) break;
@@ -271,81 +283,64 @@
         }
         if(ok) picked.push(c);
       }
-
-      // якщо надто жорстко і не набрали — трохи послаблюємо добір (але без повторів)
       if(picked.length < count){
         const rest = pal.filter(x => !picked.includes(x));
         while(picked.length < count && rest.length){
           picked.push(rest.shift());
         }
       }
-
-      return picked.slice(0, count);
+      return picked.slice(0,count);
     }
-
     function arrangeNonSimilarOrder(colors){
-      // пробуємо багато разів знайти порядок без “схожих сусідів”
       let best = null, bestMin = -1;
-
       for(let t=0; t<2500; t++){
         const cand = shuffle(colors);
         let minAdj = Infinity;
         let ok = true;
-
         for(let i=1;i<cand.length;i++){
           const d = colorDist(cand[i-1], cand[i]);
           minAdj = Math.min(minAdj, d);
           if(d < MIN_DIST_ADJ){ ok = false; break; }
         }
-
         if(ok) return cand;
         if(minAdj > bestMin){ bestMin = minAdj; best = cand; }
       }
       return best || colors;
     }
-
     function makeLevelBars(lvl){
       const n = barsCountForLevel(lvl);
-
-      // 2) гарантовано різні + не схожі
       const picked = sampleUniqueNonSimilarColors(n);
-
-      // 3) розставляємо так, щоб сусіди теж не були схожі
       const ordered = arrangeNonSimilarOrder(picked);
-
       return ordered.map((hex, idx) => ({ id: `${lvl}-${idx}-${hex}`, hex }));
     }
 
-    // ===== Render + DnD =====
+    // ===== Render =====
     function renderBars(list, interactive){
       stackEl.innerHTML = "";
       list.forEach((item) => {
         const div = document.createElement('div');
-        div.className = 'bar';
+        div.className = 'bar' + (interactive ? ' grabbable' : ' disabled');
         div.style.background = item.hex;
         div.dataset.id = item.id;
         div.dataset.hex = item.hex;
-        div.draggable = interactive;
 
         const mark = document.createElement('div');
         mark.className = 'mark';
         mark.textContent = "";
         div.appendChild(mark);
 
-        if(interactive) addDnDHandlers(div);
-        else div.classList.add('disabled');
-
         stackEl.appendChild(div);
       });
+
+      if(interactive) enableMobileDrag();
+      else disableMobileDrag();
     }
 
     function lockInteraction(){
       phase = 'locked';
       btnCheck.disabled = true;
-      for(const el of [...stackEl.children]){
-        el.draggable = false;
-        el.classList.add('disabled');
-      }
+      disableMobileDrag();
+      [...stackEl.children].forEach(el => el.classList.add('disabled'));
     }
 
     function applyCheckVisualsAndScore(){
@@ -373,37 +368,102 @@
       posCorrect += correctHere;
     }
 
-    let dragId = null;
-    function addDnDHandlers(el){
-      el.addEventListener('dragstart', (e) => {
-        if(phase !== 'restore') return e.preventDefault();
-        dragId = el.dataset.id;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', dragId);
-      });
+    // ===== Mobile / Pointer drag (works on phone) =====
+    let draggingEl = null;
+    let draggingIndex = -1;
+    let placeholderEl = null;
+    let pointerId = null;
 
-      el.addEventListener('dragover', (e) => {
+    function disableMobileDrag(){
+      stackEl.onpointerdown = null;
+      stackEl.onpointermove = null;
+      stackEl.onpointerup = null;
+      stackEl.onpointercancel = null;
+    }
+
+    function enableMobileDrag(){
+      disableMobileDrag();
+
+      stackEl.onpointerdown = (e) => {
         if(phase !== 'restore') return;
+        const bar = e.target.closest('.bar');
+        if(!bar) return;
+
+        pointerId = e.pointerId;
+        stackEl.setPointerCapture(pointerId);
+
+        draggingEl = bar;
+        draggingIndex = [...stackEl.children].indexOf(bar);
+
+        // placeholder
+        placeholderEl = document.createElement('div');
+        placeholderEl.className = 'placeholder';
+        bar.replaceWith(placeholderEl);
+
+        // ghost
+        ghostEl.style.background = bar.dataset.hex;
+        ghostEl.style.width = stackEl.getBoundingClientRect().width + "px";
+        ghostEl.style.transform = `translate(${e.clientX - ghostEl.offsetWidth/2}px, ${e.clientY - 28}px)`;
+
+        bar.classList.add('dragging');
         e.preventDefault();
-      });
+      };
 
-      el.addEventListener('drop', (e) => {
-        if(phase !== 'restore') return;
-        e.preventDefault();
+      stackEl.onpointermove = (e) => {
+        if(!draggingEl || e.pointerId !== pointerId) return;
 
-        const fromId = e.dataTransfer.getData('text/plain');
-        const toId = el.dataset.id;
-        if(!fromId || !toId || fromId === toId) return;
+        ghostEl.style.transform = `translate(${e.clientX - ghostEl.offsetWidth/2}px, ${e.clientY - 28}px)`;
 
-        const fromIdx = current.findIndex(x => x.id === fromId);
-        const toIdx   = current.findIndex(x => x.id === toId);
-        if(fromIdx < 0 || toIdx < 0) return;
+        // визначаємо над якою позицією курсор
+        const bars = [...stackEl.querySelectorAll('.bar, .placeholder')];
+        const y = e.clientY;
 
-        const moved = current.splice(fromIdx, 1)[0];
-        current.splice(toIdx, 0, moved);
+        let insertBefore = null;
+        for(const node of bars){
+          const r = node.getBoundingClientRect();
+          const mid = r.top + r.height/2;
+          if(y < mid){
+            insertBefore = node;
+            break;
+          }
+        }
 
-        renderBars(current, true);
-      });
+        if(insertBefore){
+          stackEl.insertBefore(placeholderEl, insertBefore);
+        }else{
+          stackEl.appendChild(placeholderEl);
+        }
+      };
+
+      function finishPointer(){
+        if(!draggingEl) return;
+
+        // вставляємо елемент на місце placeholder
+        placeholderEl.replaceWith(draggingEl);
+
+        // прибираємо ghost
+        ghostEl.style.transform = `translate(-9999px,-9999px)`;
+
+        draggingEl.classList.remove('dragging');
+
+        // оновлюємо current за фактичним DOM
+        const ids = [...stackEl.querySelectorAll('.bar')].map(el => el.dataset.id);
+        current = ids.map(id => current.find(x => x.id === id));
+
+        draggingEl = null;
+        placeholderEl = null;
+        pointerId = null;
+        draggingIndex = -1;
+      }
+
+      stackEl.onpointerup = (e) => {
+        if(e.pointerId !== pointerId) return;
+        finishPointer();
+      };
+      stackEl.onpointercancel = (e) => {
+        if(e.pointerId !== pointerId) return;
+        finishPointer();
+      };
     }
 
     // ===== Phases =====
@@ -461,7 +521,6 @@
       lockInteraction();
       applyCheckVisualsAndScore();
 
-      // завжди наступний рівень (не завершуємо на помилці)
       setTimeout(() => {
         level++;
         if(level > TOTAL_LEVELS) finishGame();
