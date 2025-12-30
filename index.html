@@ -33,6 +33,7 @@
       background:rgba(255,255,255,.10);color:#fff;cursor:pointer;
       display:grid;place-items:center;font-weight:800;
     }
+    .btn-icon:hover{background:rgba(255,255,255,.18)}
 
     .form{max-width:420px;margin:0 auto;display:grid;gap:10px;text-align:left}
     label{font-size:13px;color:var(--muted)}
@@ -44,7 +45,9 @@
 
     .btn{border:0;border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer;font-size:15px}
     .btn.primary{background:var(--accent);color:#fff}
+    .btn.primary:hover{filter:brightness(.95)}
     .btn.ghost{background:#eef2f7;color:#111}
+    .btn.ghost:hover{filter:brightness(.98)}
     .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
     .tag{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:#eef2f7;color:#111}
@@ -53,6 +56,7 @@
 
     .phase{font-size:14px;color:var(--muted);display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:10px}
     .stack-area{display:flex;justify-content:center;align-items:center;padding:18px 10px;min-height:320px}
+
     .stack{
       width:min(300px, 88vw);
       border-radius:14px;overflow:hidden;
@@ -66,7 +70,7 @@
       user-select:none;
       position:relative;
       transition: background-color .18s ease, transform .12s ease;
-      touch-action:none; /* ВАЖЛИВО для мобільного drag */
+      touch-action:none; /* важливо для мобільного drag */
     }
     .bar.grabbable{cursor:grab}
     .bar.disabled{cursor:default}
@@ -83,20 +87,15 @@
     }
     .bar.checked .mark{opacity:1}
 
-    /* Плейсхолдер куди вставиться елемент */
     .placeholder{
       height:56px;
       border:2px dashed rgba(0,0,0,.18);
       background:rgba(0,0,0,.04);
     }
-
-    /* “плаваюча” копія під пальцем */
     .ghost{
-      position:fixed;
-      left:0; top:0;
+      position:fixed; left:0; top:0;
       width:min(300px, 88vw);
       height:56px;
-      border-radius:0;
       z-index:9999;
       pointer-events:none;
       box-shadow:0 14px 30px rgba(0,0,0,.18);
@@ -109,12 +108,13 @@
 <body>
   <div class="wrap">
 
+    <!-- START -->
     <section id="startScreen" class="screen active">
       <div class="card center">
         <div class="h1">Тренажер памʼяті</div>
         <p class="sub">
           6 секунд на запамʼятовування. Потім перетягніть смужки пальцем/мишкою й натисніть «Перевірити».
-          Після перевірки 3 секунди видно ✓/✕ і одразу наступний рівень.
+          Після перевірки 3 секунди видно ✓/✕ і одразу наступний рівень. Гра НЕ зупиняється на помилці.
         </p>
 
         <form id="startForm" class="form" autocomplete="on">
@@ -132,6 +132,7 @@
       </div>
     </section>
 
+    <!-- GAME -->
     <section id="gameScreen" class="screen">
       <div class="topbar">
         <div class="top-left"><div class="pill">Бали: <b id="score">0</b></div></div>
@@ -159,6 +160,7 @@
       </div>
     </section>
 
+    <!-- RESULT -->
     <section id="resultScreen" class="screen">
       <div class="card center">
         <div class="h1">Результат</div>
@@ -168,6 +170,8 @@
           <button class="btn primary" id="btnPlayAgain" type="button">Зіграти ще раз</button>
           <button class="btn ghost" id="btnBackHome" type="button">На головну</button>
         </div>
+
+        <div class="small" style="margin-top:10px">Якщо в Telegram не прийшло — перевірте, що ви писали боту /start.</div>
       </div>
     </section>
 
@@ -176,17 +180,13 @@
   <div id="ghost" class="ghost"></div>
 
   <script>
-    // ===== Telegram (встав свій токен локально) =====
-    const BOT_TOKEN = "PASTE_YOUR_BOT_TOKEN_HERE";
-    const CHAT_ID   = "1350269784";
-
     // ===== Налаштування гри =====
     const TOTAL_LEVELS = 5;
     const MEM_SECONDS = 6;
     const SHOW_RESULT_MS = 3000;
     const POINTS_PER_CORRECT = 5;
 
-    // анти-“схожі” кольори
+    // анти-“схожі” кольори в межах одного рівня
     const MIN_DIST_ANY = 120;
     const MIN_DIST_ADJ = 160;
 
@@ -285,9 +285,7 @@
       }
       if(picked.length < count){
         const rest = pal.filter(x => !picked.includes(x));
-        while(picked.length < count && rest.length){
-          picked.push(rest.shift());
-        }
+        while(picked.length < count && rest.length) picked.push(rest.shift());
       }
       return picked.slice(0,count);
     }
@@ -326,7 +324,6 @@
 
         const mark = document.createElement('div');
         mark.className = 'mark';
-        mark.textContent = "";
         div.appendChild(mark);
 
         stackEl.appendChild(div);
@@ -368,9 +365,8 @@
       posCorrect += correctHere;
     }
 
-    // ===== Mobile / Pointer drag (works on phone) =====
+    // ===== Mobile drag =====
     let draggingEl = null;
-    let draggingIndex = -1;
     let placeholderEl = null;
     let pointerId = null;
 
@@ -393,14 +389,11 @@
         stackEl.setPointerCapture(pointerId);
 
         draggingEl = bar;
-        draggingIndex = [...stackEl.children].indexOf(bar);
 
-        // placeholder
         placeholderEl = document.createElement('div');
         placeholderEl.className = 'placeholder';
         bar.replaceWith(placeholderEl);
 
-        // ghost
         ghostEl.style.background = bar.dataset.hex;
         ghostEl.style.width = stackEl.getBoundingClientRect().width + "px";
         ghostEl.style.transform = `translate(${e.clientX - ghostEl.offsetWidth/2}px, ${e.clientY - 28}px)`;
@@ -414,56 +407,36 @@
 
         ghostEl.style.transform = `translate(${e.clientX - ghostEl.offsetWidth/2}px, ${e.clientY - 28}px)`;
 
-        // визначаємо над якою позицією курсор
-        const bars = [...stackEl.querySelectorAll('.bar, .placeholder')];
+        const nodes = [...stackEl.querySelectorAll('.bar, .placeholder')];
         const y = e.clientY;
 
         let insertBefore = null;
-        for(const node of bars){
+        for(const node of nodes){
           const r = node.getBoundingClientRect();
-          const mid = r.top + r.height/2;
-          if(y < mid){
-            insertBefore = node;
-            break;
-          }
+          if(y < r.top + r.height/2){ insertBefore = node; break; }
         }
 
-        if(insertBefore){
-          stackEl.insertBefore(placeholderEl, insertBefore);
-        }else{
-          stackEl.appendChild(placeholderEl);
-        }
+        if(insertBefore) stackEl.insertBefore(placeholderEl, insertBefore);
+        else stackEl.appendChild(placeholderEl);
       };
 
-      function finishPointer(){
-        if(!draggingEl) return;
+      const finish = (e) => {
+        if(!draggingEl || e.pointerId !== pointerId) return;
 
-        // вставляємо елемент на місце placeholder
         placeholderEl.replaceWith(draggingEl);
-
-        // прибираємо ghost
         ghostEl.style.transform = `translate(-9999px,-9999px)`;
-
         draggingEl.classList.remove('dragging');
 
-        // оновлюємо current за фактичним DOM
         const ids = [...stackEl.querySelectorAll('.bar')].map(el => el.dataset.id);
         current = ids.map(id => current.find(x => x.id === id));
 
         draggingEl = null;
         placeholderEl = null;
         pointerId = null;
-        draggingIndex = -1;
-      }
+      };
 
-      stackEl.onpointerup = (e) => {
-        if(e.pointerId !== pointerId) return;
-        finishPointer();
-      };
-      stackEl.onpointercancel = (e) => {
-        if(e.pointerId !== pointerId) return;
-        finishPointer();
-      };
+      stackEl.onpointerup = finish;
+      stackEl.onpointercancel = finish;
     }
 
     // ===== Phases =====
@@ -528,16 +501,23 @@
       }, SHOW_RESULT_MS);
     }
 
+    // ✅ Надсилання через send.php (працює без CORS)
     async function sendResultToTelegram(text){
-      if(!BOT_TOKEN || BOT_TOKEN === "PASTE_YOUR_BOT_TOKEN_HERE") return;
-      const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
       try{
-        await fetch(url, {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ chat_id: CHAT_ID, text })
+        const r = await fetch("./send.php", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ text })
         });
-      }catch(e){}
+        const j = await r.json().catch(()=>null);
+        if(!r.ok || (j && j.ok === false)){
+          console.log("send.php failed:", r.status, j);
+          alert("Не вдалось відправити у Telegram. Відкрий F12 → Console.");
+        }
+      }catch(e){
+        console.log("send error:", e);
+        alert("Помилка відправки у Telegram. Відкрий F12 → Console.");
+      }
     }
 
     function finishGame(){
