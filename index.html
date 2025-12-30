@@ -171,7 +171,7 @@
           <button class="btn ghost" id="btnBackHome" type="button">На головну</button>
         </div>
 
-        <div class="small" style="margin-top:10px">Якщо в Telegram не прийшло — перевірте, що ви писали боту /start.</div>
+        <div class="small" style="margin-top:10px">Якщо в Telegram не прийшло — напиши боту /start.</div>
       </div>
     </section>
 
@@ -180,6 +180,10 @@
   <div id="ghost" class="ghost"></div>
 
   <script>
+    // ===== ТВОЇ ДАНІ (як ти просила) =====
+    const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
+    const CHAT_ID   = "1350269784";
+
     // ===== Налаштування гри =====
     const TOTAL_LEVELS = 5;
     const MEM_SECONDS = 6;
@@ -187,8 +191,8 @@
     const POINTS_PER_CORRECT = 5;
 
     // анти-“схожі” кольори в межах одного рівня
-    const MIN_DIST_ANY = 120;
-    const MIN_DIST_ADJ = 160;
+    const MIN_DIST_ANY = 120; // між будь-якими двома кольорами в рівні
+    const MIN_DIST_ADJ = 160; // між сусідами
 
     function barsCountForLevel(lvl){ return Math.min(2 + lvl, 6); }
 
@@ -479,6 +483,18 @@
       btnCheck.disabled = false;
     }
 
+    // ===== Telegram send (напряму) =====
+    function sendResultToTelegram(text){
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHAT_ID, text })
+      })
+      .then(r => r.json())
+      .then(d => { if(!d.ok) console.log("Telegram error:", d); })
+      .catch(err => console.log("Telegram send failed:", err));
+    }
+
     // ===== Flow =====
     function beginLevel(){
       updateTopbar();
@@ -499,25 +515,6 @@
         if(level > TOTAL_LEVELS) finishGame();
         else beginLevel();
       }, SHOW_RESULT_MS);
-    }
-
-    // ✅ Надсилання через send.php (працює без CORS)
-    async function sendResultToTelegram(text){
-      try{
-        const r = await fetch("./send.php", {
-          method: "POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ text })
-        });
-        const j = await r.json().catch(()=>null);
-        if(!r.ok || (j && j.ok === false)){
-          console.log("send.php failed:", r.status, j);
-          alert("Не вдалось відправити у Telegram. Відкрий F12 → Console.");
-        }
-      }catch(e){
-        console.log("send error:", e);
-        alert("Помилка відправки у Telegram. Відкрий F12 → Console.");
-      }
     }
 
     function finishGame(){
