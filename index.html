@@ -1,612 +1,192 @@
 <!doctype html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Сортувальник кольорів — тренажер</title>
-  <style>
-    :root{
-      --bg:#f4f5f7;
-      --card:#ffffff;
-      --text:#111;
-      --muted:#666;
-      --top:#2f2f2f;
-      --accent:#0a5fa5;
-      --danger:#ff4b4b;
-      --ok:#39b36b;
-      --shadow: 0 8px 24px rgba(0,0,0,.08);
-      --radius:14px;
-    }
-    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    body{margin:0;background:var(--bg);color:var(--text)}
-    .wrap{max-width:980px;margin:0 auto;padding:18px}
-    .screen{display:none}
-    .screen.active{display:block}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тренажер памʼяті</title>
 
-    .topbar{
-      height:46px;background:var(--top);color:#fff;
-      display:flex;align-items:center;justify-content:space-between;
-      padding:0 14px;border-radius:12px;box-shadow:var(--shadow);
-      gap:10px;
-    }
-    .top-left,.top-mid,.top-right{display:flex;align-items:center;gap:14px;font-size:14px}
-    .pill{display:flex;align-items:center;gap:8px;opacity:.95}
-    .pill b{font-weight:700}
-    .progress{
-      height:6px;background:rgba(255,255,255,.18);
-      border-radius:999px;overflow:hidden;min-width:220px;
-    }
-    .progress > div{height:100%;width:0%;background:linear-gradient(90deg,#39b36b,#0a5fa5)}
-    .btn-icon{
-      width:30px;height:30px;border-radius:9px;border:0;
-      background:rgba(255,255,255,.10);color:#fff;cursor:pointer;
-      display:grid;place-items:center;font-weight:800;
-    }
-    .btn-icon:hover{background:rgba(255,255,255,.18)}
-
-    .card{
-      margin-top:14px;background:var(--card);border-radius:var(--radius);
-      box-shadow:var(--shadow);padding:18px;
-    }
-    .center{text-align:center}
-    .h1{font-size:26px;margin:2px 0 8px}
-    .sub{color:var(--muted);margin:0 0 14px;line-height:1.35}
-
-    .form{
-      max-width:420px;margin:0 auto;display:grid;gap:10px;text-align:left;
-    }
-    label{font-size:13px;color:var(--muted)}
-    input{
-      width:100%;padding:12px 12px;border-radius:12px;border:1px solid #d9dde3;
-      outline:none;font-size:15px;
-    }
-    input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,95,165,.12)}
-    .btn{
-      border:0;border-radius:12px;padding:12px 14px;font-weight:700;
-      cursor:pointer;font-size:15px;
-    }
-    .btn.primary{background:var(--accent);color:#fff}
-    .btn.primary:hover{filter:brightness(.95)}
-    .btn.ghost{background:#eef2f7;color:#111}
-    .btn.ghost:hover{filter:brightness(.98)}
-    .btn.danger{background:rgba(255,75,75,.12);color:#b51212}
-    .btn.danger:hover{filter:brightness(.98)}
-    .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-
-    .game-title{font-weight:800;margin:6px 0 10px}
-    .stack-area{
-      display:flex;justify-content:center;align-items:center;
-      padding:22px 10px;
-      min-height:340px;
-    }
-    .stack{
-      width:min(220px, 70vw);
-      border-radius:10px;
-      overflow:hidden;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-      border:1px solid #e7eaf0;
-      background:#fff;
-    }
-    .bar{
-      height:50px;
-      display:flex;align-items:center;justify-content:center;
-      font-weight:700;
-      user-select:none;
-      cursor:grab;
-    }
-    .bar:active{cursor:grabbing}
-    .bar.dragging{opacity:.55}
-    .bar .hint{font-size:12px;color:rgba(0,0,0,.45);font-weight:800;mix-blend-mode:multiply}
-
-    .phase{
-      font-size:14px;color:var(--muted);
-      display:flex;justify-content:center;gap:10px;align-items:center;
-    }
-    .tag{
-      font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;
-      background:#eef2f7;color:#111;
-    }
-    .tag.red{background:rgba(255,75,75,.12);color:#b51212}
-    .tag.blue{background:rgba(10,95,165,.12);color:#0a5fa5}
-    .tag.green{background:rgba(57,179,107,.12);color:#1f7e45}
-
-    .overlay{position:relative}
-    .check-overlay{
-      position:absolute;inset:0;display:none;
-      align-items:center;justify-content:center;
-      background:rgba(255,255,255,.78);
-      backdrop-filter: blur(1px);
-    }
-    .check-overlay.show{display:flex}
-    .checks{
-      width:160px;border-radius:10px;overflow:hidden;
-      box-shadow:0 14px 36px rgba(0,0,0,.12);
-      border:1px solid #e7eaf0;
-    }
-    .check-row{
-      height:42px;background:rgba(57,179,107,.85);
-      display:flex;align-items:center;justify-content:center;
-      color:#fff;font-size:18px;font-weight:900;
-      border-bottom:1px solid rgba(255,255,255,.35);
-    }
-    .check-row:last-child{border-bottom:0}
-
-    .result-grid{
-      display:grid;gap:12px;max-width:520px;margin:0 auto;text-align:left;
-    }
-    .stat{
-      background:#fff;border-radius:14px;padding:14px;border:1px solid #e7eaf0;
-      box-shadow:var(--shadow);
-    }
-    .stat b{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-    .stat span{font-size:20px;font-weight:900}
-    .small{font-size:12px;color:var(--muted)}
-  </style>
+<style>
+body{margin:0;font-family:system-ui;background:#f4f5f7}
+.screen{display:none}
+.screen.active{display:block}
+.card{max-width:800px;margin:30px auto;background:#fff;
+  border-radius:14px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.center{text-align:center}
+button{padding:12px 18px;border-radius:12px;border:0;
+  background:#0a5fa5;color:#fff;font-weight:700;cursor:pointer}
+button.secondary{background:#e5e7eb;color:#111}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
+.stack{width:220px;margin:auto;border-radius:10px;overflow:hidden}
+.bar{height:50px;display:flex;align-items:center;justify-content:center;
+  font-weight:700;cursor:grab}
+.bar.dragging{opacity:.5}
+.top{display:flex;justify-content:space-between;margin-bottom:12px}
+.hidden{display:none}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
 
-    <!-- START SCREEN -->
-    <section id="startScreen" class="screen active">
-      <div class="card center">
-        <div class="h1">Сортувальник кольорів</div>
-        <p class="sub">
-          Запам’ятайте порядок кольорів (6 секунд), потім відновіть його перетягуванням смужок
-          і натисніть «Перевірити».
-        </p>
+<!-- START -->
+<div id="start" class="screen active">
+  <div class="card center">
+    <h2>Тренажер памʼяті</h2>
+    <p>Запамʼятай порядок кольорів (6 секунд), віднови його та натисни «Перевірити»</p>
 
-        <form id="startForm" class="form" autocomplete="on">
-          <div>
-            <label for="name">Ім’я</label>
-            <input id="name" name="name" placeholder="Напр.: Анастасія" required maxlength="40" />
-          </div>
-          <div>
-            <label for="email">Пошта</label>
-            <input id="email" name="email" type="email" placeholder="name@example.com" required maxlength="80" />
-          </div>
-          <button class="btn primary" type="submit">Почати гру</button>
-          <div class="small center">Дані зберігаються тільки у вашому браузері (localStorage).</div>
-        </form>
-      </div>
-    </section>
+    <input id="name" placeholder="Імʼя" required><br><br>
+    <input id="email" placeholder="Пошта" type="email" required><br><br>
 
-    <!-- GAME SCREEN -->
-    <section id="gameScreen" class="screen">
-      <div class="topbar">
-        <div class="top-left">
-          <div class="pill">Бали: <b id="score">0</b></div>
-        </div>
-
-        <div class="top-mid">
-          <div class="pill">Рівень: <b id="levelLabel">1/5</b></div>
-          <div class="progress" aria-label="progress">
-            <div id="progressFill"></div>
-          </div>
-        </div>
-
-        <div class="top-right">
-          <div class="pill">Час: <b id="timeLeft">60</b></div>
-          <button class="btn-icon" id="btnExit" title="Вийти">✕</button>
-        </div>
-      </div>
-
-      <div class="card center">
-        <div class="game-title" id="gameTitle">Відсортуйте кольори</div>
-
-        <div class="phase" id="phaseRow">
-          <span class="tag blue" id="phaseTag">Запам’ятайте порядок</span>
-          <span class="tag" id="phaseHint">6 секунд…</span>
-        </div>
-
-        <div class="stack-area overlay">
-          <div class="stack" id="stack"></div>
-
-          <div class="check-overlay" id="checkOverlay">
-            <div class="checks" id="checksBox">
-              <div class="check-row">✓</div>
-              <div class="check-row">✓</div>
-              <div class="check-row">✓</div>
-              <div class="check-row">✓</div>
-              <div class="check-row">✓</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <button class="btn ghost" id="btnRestartLevel" type="button">Перемішати ще раз</button>
-          <button class="btn primary" id="btnCheck" type="button" style="display:none">Перевірити</button>
-        </div>
-        <div class="small" style="margin-top:10px">
-          Після перемішування з’являється «Перевірити». Перетягни смужки у правильний порядок і натисни кнопку.
-        </div>
-      </div>
-    </section>
-
-    <!-- RESULT SCREEN -->
-    <section id="resultScreen" class="screen">
-      <div class="card center">
-        <div class="h1">Результат</div>
-        <p class="sub" id="resultHello">Гра завершена.</p>
-
-        <div class="result-grid">
-          <div class="stat"><b>Набрано балів</b><span id="rScore">0</span></div>
-          <div class="stat"><b>Пройдено рівнів</b><span id="rLevels">0/5</span></div>
-          <div class="stat"><b>Точність</b><span id="rAcc">0%</span></div>
-          <div class="stat"><b>Час (сек)</b><span id="rTime">0</span></div>
-        </div>
-
-        <div class="row" style="margin-top:14px">
-          <button class="btn primary" id="btnPlayAgain" type="button">Зіграти ще раз</button>
-          <button class="btn ghost" id="btnBackHome" type="button">На головну</button>
-        </div>
-      </div>
-    </section>
-
+    <button onclick="startGame()">Почати гру</button>
   </div>
+</div>
 
-  <script>
-    // ==================== CONFIG ====================
-    const TOTAL_LEVELS = 5;
-    const TOTAL_TIME_SEC = 60;
-    const MEMORIZE_MS = 6000; // 6 секунд на запам'ятовування
+<!-- GAME -->
+<div id="game" class="screen">
+  <div class="card center">
+    <div class="top">
+      <div>Бали: <b id="score">0</b></div>
+      <div>Рівень: <b id="level">1/5</b></div>
+      <div>Час: <b id="time">60</b></div>
+    </div>
 
-    // СЮДИ ВСТАВ URL твого Apps Script Web App
-    const APPS_SCRIPT_ENDPOINT = "PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE";
+    <h3 id="phase">Запамʼятайте порядок</h3>
 
-    function barsCountForLevel(level){
-      // 1->3, 2->4, 3->5, 4->5, 5->6
-      return Math.min(2 + level, 6);
-    }
+    <div class="stack" id="stack"></div><br>
 
-    // ==================== UI refs ====================
-    const startScreen = document.getElementById('startScreen');
-    const gameScreen  = document.getElementById('gameScreen');
-    const resultScreen= document.getElementById('resultScreen');
+    <button id="checkBtn" class="hidden" onclick="check()">Перевірити</button>
+  </div>
+</div>
 
-    const startForm = document.getElementById('startForm');
-    const inName = document.getElementById('name');
-    const inEmail= document.getElementById('email');
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="card center">
+    <h2>Результат</h2>
+    <p id="summary"></p>
+    <button onclick="location.reload()">На головну</button>
+  </div>
+</div>
 
-    const scoreEl = document.getElementById('score');
-    const levelLabelEl = document.getElementById('levelLabel');
-    const timeLeftEl = document.getElementById('timeLeft');
-    const progressFill = document.getElementById('progressFill');
+<script>
+/* ===================== НАСТРОЙКИ ===================== */
+const APPS_SCRIPT_URL = "ВСТАВ_ТУТ_URL_WEB_APP"; // ← ОБОВʼЯЗКОВО
+const LEVELS = 5;
+const MEM_TIME = 6000;
 
-    const phaseTag = document.getElementById('phaseTag');
-    const phaseHint= document.getElementById('phaseHint');
-    const stackEl  = document.getElementById('stack');
-    const btnRestartLevel = document.getElementById('btnRestartLevel');
-    const btnExit = document.getElementById('btnExit');
-    const btnCheck = document.getElementById('btnCheck');
+/* ===================== СТАН ===================== */
+let player={}, level=1, score=0;
+let target=[], current=[];
+let time=60, timer;
+let checksTotal=0, checksCorrect=0;
+let startTs;
 
-    const checkOverlay = document.getElementById('checkOverlay');
+/* ===================== КОЛЬОРИ ===================== */
+const COLORS = [
+  ["Червоний","#ff4b4b"],["Жовтий","#ffd60a"],["Зелений","#39b36b"],
+  ["Синій","#3aa8ff"],["Фіолетовий","#8b5cf6"],["Рожевий","#ff4fd8"]
+];
 
-    const resultHello = document.getElementById('resultHello');
-    const rScore = document.getElementById('rScore');
-    const rLevels= document.getElementById('rLevels');
-    const rAcc  = document.getElementById('rAcc');
-    const rTime = document.getElementById('rTime');
-    const btnPlayAgain = document.getElementById('btnPlayAgain');
-    const btnBackHome  = document.getElementById('btnBackHome');
+/* ===================== СТАРТ ===================== */
+function startGame(){
+  player.name=name.value.trim();
+  player.email=email.value.trim();
+  if(!player.name||!player.email)return;
 
-    // ==================== STATE ====================
-    let player = { name:'', email:'' };
+  startTs=Date.now();
+  show("game");
+  timer=setInterval(()=>{
+    time--; document.getElementById("time").textContent=time;
+    if(time<=0) finish();
+  },1000);
+  startLevel();
+}
 
-    let level = 1;
-    let score = 0;
+/* ===================== РІВЕНЬ ===================== */
+function startLevel(){
+  document.getElementById("level").textContent=level+"/5";
+  document.getElementById("score").textContent=score;
+  document.getElementById("phase").textContent="Запамʼятайте порядок";
+  checkBtn.classList.add("hidden");
 
-    let target = [];      // правильний порядок: [{id,name,hex},...]
-    let current = [];     // поточний порядок
-    let phase = 'memorize'; // 'memorize' | 'restore'
+  target=shuffle(COLORS).slice(0,Math.min(2+level,6));
+  current=[...target];
+  render(target,false);
 
-    let timer = null;
-    let timeLeft = TOTAL_TIME_SEC;
+  setTimeout(()=>{
+    current=shuffle(target);
+    render(current,true);
+    document.getElementById("phase").textContent="Відновіть порядок";
+    checkBtn.classList.remove("hidden");
+  },MEM_TIME);
+}
 
-    // статистика
-    let checksTotal = 0;       // скільки разів натиснули "Перевірити"
-    let checksCorrect = 0;     // скільки правильних перевірок
-    let startTimestamp = 0;
+/* ===================== RENDER ===================== */
+function render(arr,drag){
+  stack.innerHTML="";
+  arr.forEach(c=>{
+    const d=document.createElement("div");
+    d.className="bar";
+    d.style.background=c[1];
+    d.textContent=c[0];
+    d.draggable=drag;
+    d.ondragstart=e=>{dragEl=d;};
+    d.ondragover=e=>e.preventDefault();
+    d.ondrop=e=>{
+      const a=[...stack.children];
+      const i=a.indexOf(d), j=a.indexOf(dragEl);
+      current.splice(i,0,current.splice(j,1)[0]);
+      render(current,true);
+    };
+    stack.appendChild(d);
+  });
+}
 
-    // ==================== UTIL ====================
-    function showScreen(which){
-      [startScreen, gameScreen, resultScreen].forEach(s => s.classList.remove('active'));
-      which.classList.add('active');
-    }
+/* ===================== ПЕРЕВІРКА ===================== */
+function check(){
+  checksTotal++;
+  if(JSON.stringify(current)==JSON.stringify(target)){
+    checksCorrect++;
+    score+=10;
+    level++;
+    if(level>LEVELS) finish();
+    else startLevel();
+  }
+}
 
-    function shuffle(arr){
-      const a = arr.slice();
-      for(let i=a.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [a[i],a[j]] = [a[j],a[i]];
-      }
-      return a;
-    }
+/* ===================== ФІНІШ ===================== */
+function finish(){
+  clearInterval(timer);
+  const timeSpent=Math.round((Date.now()-startTs)/1000);
+  show("result");
 
-    function updateTopbar(){
-      scoreEl.textContent = String(score);
-      levelLabelEl.textContent = `${level}/${TOTAL_LEVELS}`;
-      timeLeftEl.textContent = String(timeLeft);
-      progressFill.style.width = `${Math.round(((level-1)/TOTAL_LEVELS)*100)}%`;
-    }
+  summary.innerHTML=`
+  👤 ${player.name}<br>
+  ⭐ Бали: ${score}<br>
+  🏁 Рівнів: ${Math.min(level-1,LEVELS)}/5<br>
+  🎯 Точність: ${checksTotal?Math.round(checksCorrect/checksTotal*100):0}%<br>
+  ⏱ Час: ${timeSpent} с`;
 
-    function palette(){
-      return [
-        {name:"Червоний", hex:"#ff4b4b"},
-        {name:"Помаранчевий", hex:"#ff9f1a"},
-        {name:"Жовтий", hex:"#ffd60a"},
-        {name:"Зелений", hex:"#39b36b"},
-        {name:"Блакитний", hex:"#3aa8ff"},
-        {name:"Синій", hex:"#2f6bff"},
-        {name:"Фіолетовий", hex:"#8b5cf6"},
-        {name:"Рожевий", hex:"#ff4fd8"},
-        {name:"Бірюзовий", hex:"#00c2b3"},
-        {name:"Коричневий", hex:"#b07a4a"},
-      ];
-    }
+  fetch(APPS_SCRIPT_URL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name:player.name,
+      email:player.email,
+      score,
+      levels:`${Math.min(level-1,LEVELS)}/5`,
+      accuracy:checksTotal?Math.round(checksCorrect/checksTotal*100):0,
+      time:timeSpent,
+      checksTotal,
+      checksCorrect
+    })
+  });
+}
 
-    function makeLevelBars(level){
-      const n = barsCountForLevel(level);
-      const pal = shuffle(palette()).slice(0,n);
-      return pal.map((c, idx) => ({ id: `${level}-${idx}-${c.hex}`, name: c.name, hex: c.hex }));
-    }
-
-    // ==================== SEND RESULT ====================
-    async function sendResultToTelegramViaAppsScript(payload){
-      if(!APPS_SCRIPT_ENDPOINT || APPS_SCRIPT_ENDPOINT.startsWith("PASTE_")) return;
-      try{
-        await fetch(APPS_SCRIPT_ENDPOINT, {
-          method: "POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify(payload)
-        });
-      }catch(e){
-        // мовчки
-      }
-    }
-
-    // ==================== RENDER ====================
-    function renderBars(list, interactive){
-      stackEl.innerHTML = "";
-      list.forEach((item) => {
-        const div = document.createElement('div');
-        div.className = 'bar';
-        div.style.background = item.hex;
-        div.dataset.id = item.id;
-        div.draggable = interactive;
-
-        div.innerHTML = `<span class="hint">${item.name}</span>`;
-
-        if(interactive){
-          addDnDHandlers(div);
-        }
-        stackEl.appendChild(div);
-      });
-    }
-
-    function setPhase(newPhase){
-      phase = newPhase;
-
-      if(phase === 'memorize'){
-        phaseTag.textContent = "Запам’ятайте порядок";
-        phaseTag.className = "tag blue";
-        phaseHint.textContent = "6 секунд…";
-        btnCheck.style.display = "none";
-        btnRestartLevel.disabled = true;
-      } else {
-        phaseTag.textContent = "Відновіть порядок";
-        phaseTag.className = "tag green";
-        phaseHint.textContent = "Перетягніть смужки, потім натисніть «Перевірити»";
-        btnCheck.style.display = "inline-block";
-        btnRestartLevel.disabled = false;
-      }
-    }
-
-    // ==================== DRAG & DROP reorder ====================
-    let dragSrcEl = null;
-
-    function addDnDHandlers(el){
-      el.addEventListener('dragstart', (e) => {
-        if(phase !== 'restore') return e.preventDefault();
-        dragSrcEl = el;
-        el.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', el.dataset.id);
-      });
-
-      el.addEventListener('dragend', () => {
-        el.classList.remove('dragging');
-        dragSrcEl = null;
-      });
-
-      el.addEventListener('dragover', (e) => {
-        if(phase !== 'restore') return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-      });
-
-      el.addEventListener('drop', (e) => {
-        if(phase !== 'restore') return;
-        e.preventDefault();
-
-        const fromId = e.dataTransfer.getData('text/plain');
-        const toId = el.dataset.id;
-        if(!fromId || !toId || fromId === toId) return;
-
-        const fromIdx = current.findIndex(x => x.id === fromId);
-        const toIdx   = current.findIndex(x => x.id === toId);
-        if(fromIdx < 0 || toIdx < 0) return;
-
-        const moved = current.splice(fromIdx, 1)[0];
-        current.splice(toIdx, 0, moved);
-
-        renderBars(current, true);
-      });
-    }
-
-    // ==================== GAME FLOW ====================
-    function startTimer(){
-      stopTimer();
-      timeLeft = TOTAL_TIME_SEC;
-      timeLeftEl.textContent = String(timeLeft);
-      timer = setInterval(() => {
-        timeLeft -= 1;
-        timeLeftEl.textContent = String(timeLeft);
-        if(timeLeft <= 0){
-          finishGame();
-        }
-      }, 1000);
-    }
-
-    function stopTimer(){
-      if(timer){ clearInterval(timer); timer = null; }
-    }
-
-    function showChecksOverlay(){
-      checkOverlay.classList.add('show');
-      setTimeout(() => checkOverlay.classList.remove('show'), 700);
-    }
-
-    function beginLevel(){
-      updateTopbar();
-
-      target = makeLevelBars(level);
-      current = target.slice();
-
-      setPhase('memorize');
-      renderBars(target, false);
-
-      setTimeout(() => {
-        current = shuffle(target);
-        renderBars(current, true);
-        setPhase('restore');
-      }, MEMORIZE_MS);
-    }
-
-    function compareOrder(){
-      if(current.length !== target.length) return false;
-      for(let i=0;i<target.length;i++){
-        if(current[i].id !== target[i].id) return false;
-      }
-      return true;
-    }
-
-    function onCheck(){
-      if(phase !== 'restore') return;
-
-      checksTotal += 1;
-      const ok = compareOrder();
-
-      if(ok){
-        checksCorrect += 1;
-        score += 10;
-        showChecksOverlay();
-
-        level += 1;
-        if(level > TOTAL_LEVELS){
-          finishGame();
-        } else {
-          setTimeout(beginLevel, 800);
-        }
-      } else {
-        score = Math.max(0, score - 1);
-        updateTopbar();
-        phaseHint.textContent = "Поки не збігається. Спробуйте ще раз і натисніть «Перевірити».";
-        phaseTag.className = "tag red";
-        phaseTag.textContent = "Не збігається";
-        setTimeout(() => {
-          phaseTag.className = "tag green";
-          phaseTag.textContent = "Відновіть порядок";
-        }, 900);
-      }
-      updateTopbar();
-    }
-
-    function finishGame(){
-      stopTimer();
-
-      const elapsed = Math.round((Date.now() - startTimestamp)/1000);
-      const completedLevels = Math.min(level-1, TOTAL_LEVELS);
-      const acc = checksTotal === 0 ? 0 : Math.round((checksCorrect / checksTotal) * 100);
-
-      resultHello.textContent = `Дякую, ${player.name}!`;
-      rScore.textContent = String(score);
-      rLevels.textContent = `${completedLevels}/${TOTAL_LEVELS}`;
-      rAcc.textContent = `${acc}%`;
-      rTime.textContent = String(elapsed);
-
-      progressFill.style.width = "100%";
-      showScreen(resultScreen);
-
-      // Надсилаємо результат тобі (в Telegram) через Apps Script
-      const payload = {
-        name: player.name,
-        email: player.email,
-        score: score,
-        levels: `${completedLevels}/${TOTAL_LEVELS}`,
-        accuracy: acc,
-        time: elapsed,
-        checksTotal: checksTotal,
-        checksCorrect: checksCorrect
-      };
-      sendResultToTelegramViaAppsScript(payload);
-    }
-
-    function resetGame(){
-      level = 1;
-      score = 0;
-      checksTotal = 0;
-      checksCorrect = 0;
-      updateTopbar();
-      progressFill.style.width = "0%";
-      startTimestamp = Date.now();
-      startTimer();
-      beginLevel();
-    }
-
-    // ==================== EVENTS ====================
-    startForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      player.name = (inName.value || "").trim();
-      player.email = (inEmail.value || "").trim();
-      if(!player.name || !player.email) return;
-
-      localStorage.setItem("trainer_name", player.name);
-      localStorage.setItem("trainer_email", player.email);
-
-      showScreen(gameScreen);
-      resetGame();
-    });
-
-    btnRestartLevel.addEventListener('click', () => {
-      if(phase !== 'restore') return;
-      current = shuffle(current);
-      renderBars(current, true);
-      phaseHint.textContent = "Перемішано. Перетягніть смужки та натисніть «Перевірити».";
-    });
-
-    btnCheck.addEventListener('click', onCheck);
-
-    btnExit.addEventListener('click', () => {
-      stopTimer();
-      showScreen(startScreen);
-    });
-
-    btnPlayAgain.addEventListener('click', () => {
-      showScreen(gameScreen);
-      resetGame();
-    });
-
-    btnBackHome.addEventListener('click', () => {
-      showScreen(startScreen);
-    });
-
-    // ==================== Prefill ====================
-    (function prefill(){
-      const n = localStorage.getItem("trainer_name") || "";
-      const e = localStorage.getItem("trainer_email") || "";
-      if(n) inName.value = n;
-      if(e) inEmail.value = e;
-    })();
-  </script>
+/* ===================== УТИЛІТИ ===================== */
+function shuffle(a){return a.sort(()=>Math.random()-.5);}
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+</script>
 </body>
 </html>
