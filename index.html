@@ -14,7 +14,6 @@ body{margin:0;font-family:system-ui;background:#f4f5f7}
 .center{text-align:center}
 button{padding:12px 18px;border-radius:12px;border:0;
   background:#0a5fa5;color:#fff;font-weight:700;cursor:pointer}
-button.secondary{background:#e5e7eb;color:#111}
 input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
 .stack{width:220px;margin:auto;border-radius:10px;overflow:hidden}
 .bar{height:50px;display:flex;align-items:center;justify-content:center;
@@ -31,12 +30,12 @@ input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
 <div id="start" class="screen active">
   <div class="card center">
     <h2>Тренажер памʼяті</h2>
-    <p>Запамʼятай порядок кольорів (6 секунд), віднови його та натисни «Перевірити»</p>
+    <p>Запамʼятай порядок кольорів (6 секунд)</p>
 
-    <input id="name" placeholder="Імʼя" required><br><br>
-    <input id="email" placeholder="Пошта" type="email" required><br><br>
+    <input id="name" placeholder="Імʼя"><br><br>
+    <input id="email" placeholder="Пошта"><br><br>
 
-    <button onclick="startGame()">Почати гру</button>
+    <button onclick="startGame()">Почати</button>
   </div>
 </div>
 
@@ -50,9 +49,7 @@ input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
     </div>
 
     <h3 id="phase">Запамʼятайте порядок</h3>
-
     <div class="stack" id="stack"></div><br>
-
     <button id="checkBtn" class="hidden" onclick="check()">Перевірити</button>
   </div>
 </div>
@@ -60,51 +57,54 @@ input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
 <!-- RESULT -->
 <div id="result" class="screen">
   <div class="card center">
-    <h2>Результат</h2>
+    <h2>Готово</h2>
     <p id="summary"></p>
     <button onclick="location.reload()">На головну</button>
   </div>
 </div>
 
 <script>
-/* ===================== НАСТРОЙКИ ===================== */
-const APPS_SCRIPT_URL = "ВСТАВ_ТУТ_URL_WEB_APP"; // ← ОБОВʼЯЗКОВО
+/* ===== ТВОЇ ДАНІ ===== */
+const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
+const CHAT_ID   = "1350269784";
+
+/* ===== НАЛАШТУВАННЯ ===== */
 const LEVELS = 5;
 const MEM_TIME = 6000;
 
-/* ===================== СТАН ===================== */
+/* ===== СТАН ===== */
 let player={}, level=1, score=0;
 let target=[], current=[];
 let time=60, timer;
 let checksTotal=0, checksCorrect=0;
 let startTs;
 
-/* ===================== КОЛЬОРИ ===================== */
+/* ===== КОЛЬОРИ ===== */
 const COLORS = [
   ["Червоний","#ff4b4b"],["Жовтий","#ffd60a"],["Зелений","#39b36b"],
   ["Синій","#3aa8ff"],["Фіолетовий","#8b5cf6"],["Рожевий","#ff4fd8"]
 ];
 
-/* ===================== СТАРТ ===================== */
+/* ===== СТАРТ ===== */
 function startGame(){
-  player.name=name.value.trim();
-  player.email=email.value.trim();
-  if(!player.name||!player.email)return;
-
+  player.name=name.value||"-";
+  player.email=email.value||"-";
   startTs=Date.now();
   show("game");
+
   timer=setInterval(()=>{
-    time--; document.getElementById("time").textContent=time;
+    time--; timeEl.textContent=time;
     if(time<=0) finish();
   },1000);
+
   startLevel();
 }
 
-/* ===================== РІВЕНЬ ===================== */
+/* ===== РІВЕНЬ ===== */
 function startLevel(){
-  document.getElementById("level").textContent=level+"/5";
-  document.getElementById("score").textContent=score;
-  document.getElementById("phase").textContent="Запамʼятайте порядок";
+  levelEl.textContent=level+"/5";
+  scoreEl.textContent=score;
+  phase.textContent="Запамʼятайте порядок";
   checkBtn.classList.add("hidden");
 
   target=shuffle(COLORS).slice(0,Math.min(2+level,6));
@@ -114,12 +114,13 @@ function startLevel(){
   setTimeout(()=>{
     current=shuffle(target);
     render(current,true);
-    document.getElementById("phase").textContent="Відновіть порядок";
+    phase.textContent="Відновіть порядок";
     checkBtn.classList.remove("hidden");
   },MEM_TIME);
 }
 
-/* ===================== RENDER ===================== */
+/* ===== RENDER ===== */
+let dragEl=null;
 function render(arr,drag){
   stack.innerHTML="";
   arr.forEach(c=>{
@@ -128,9 +129,9 @@ function render(arr,drag){
     d.style.background=c[1];
     d.textContent=c[0];
     d.draggable=drag;
-    d.ondragstart=e=>{dragEl=d;};
+    d.ondragstart=()=>dragEl=d;
     d.ondragover=e=>e.preventDefault();
-    d.ondrop=e=>{
+    d.ondrop=()=>{
       const a=[...stack.children];
       const i=a.indexOf(d), j=a.indexOf(dragEl);
       current.splice(i,0,current.splice(j,1)[0]);
@@ -140,7 +141,7 @@ function render(arr,drag){
   });
 }
 
-/* ===================== ПЕРЕВІРКА ===================== */
+/* ===== ПЕРЕВІРКА ===== */
 function check(){
   checksTotal++;
   if(JSON.stringify(current)==JSON.stringify(target)){
@@ -152,41 +153,49 @@ function check(){
   }
 }
 
-/* ===================== ФІНІШ ===================== */
+/* ===== ФІНІШ + ВІДПРАВКА ===== */
 function finish(){
   clearInterval(timer);
-  const timeSpent=Math.round((Date.now()-startTs)/1000);
+  const spent=Math.round((Date.now()-startTs)/1000);
   show("result");
 
   summary.innerHTML=`
   👤 ${player.name}<br>
-  ⭐ Бали: ${score}<br>
-  🏁 Рівнів: ${Math.min(level-1,LEVELS)}/5<br>
-  🎯 Точність: ${checksTotal?Math.round(checksCorrect/checksTotal*100):0}%<br>
-  ⏱ Час: ${timeSpent} с`;
+  ⭐ ${score} балів<br>
+  🏁 ${Math.min(level-1,LEVELS)}/5 рівнів<br>
+  🎯 ${checksTotal?Math.round(checksCorrect/checksTotal*100):0}%<br>
+  ⏱ ${spent} с`;
 
-  fetch(APPS_SCRIPT_URL,{
+  const text =
+`🎮 РЕЗУЛЬТАТ ТРЕНАЖЕРА
+👤 ${player.name}
+📧 ${player.email}
+
+⭐ Бали: ${score}
+🏁 Рівнів: ${Math.min(level-1,LEVELS)}/5
+🎯 Точність: ${checksTotal?Math.round(checksCorrect/checksTotal*100):0}%
+⏱ Час: ${spent} c`;
+
+  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
-      name:player.name,
-      email:player.email,
-      score,
-      levels:`${Math.min(level-1,LEVELS)}/5`,
-      accuracy:checksTotal?Math.round(checksCorrect/checksTotal*100):0,
-      time:timeSpent,
-      checksTotal,
-      checksCorrect
+      chat_id: CHAT_ID,
+      text: text
     })
   });
 }
 
-/* ===================== УТИЛІТИ ===================== */
+/* ===== УТИЛІТИ ===== */
 function shuffle(a){return a.sort(()=>Math.random()-.5);}
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
+
+/* ===== UI ===== */
+const scoreEl=score, levelEl=level, timeEl=time;
 </script>
+
 </body>
 </html>
