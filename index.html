@@ -3,199 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Тренажер памʼяті</title>
-
+<title>Тренажер пам’яті</title>
 <style>
-body{margin:0;font-family:system-ui;background:#f4f5f7}
-.screen{display:none}
-.screen.active{display:block}
-.card{max-width:800px;margin:30px auto;background:#fff;
-  border-radius:14px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-.center{text-align:center}
-button{padding:12px 18px;border-radius:12px;border:0;
-  background:#0a5fa5;color:#fff;font-weight:700;cursor:pointer}
-input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
-.stack{width:220px;margin:auto;border-radius:10px;overflow:hidden}
-.bar{height:50px;display:flex;align-items:center;justify-content:center;
-  font-weight:700;cursor:grab}
-.bar.dragging{opacity:.5}
-.top{display:flex;justify-content:space-between;margin-bottom:12px}
-.hidden{display:none}
+body { margin:0; font-family:sans-serif; background:#f4f5f7; }
+.screen { display: none; }
+.screen.active { display: block; }
+.card { max-width: 600px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; }
+button { background: #0a5fa5; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+button:hover { background: #084a82; }
+.hidden { display: none; }
+.stack { margin: 20px 0; }
+.bar { height: 50px; margin-bottom: 5px; border-radius: 5px; text-align: center; line-height: 50px; color: #fff; font-weight: bold; cursor: grab; }
 </style>
 </head>
-
 <body>
-
-<!-- START -->
-<div id="start" class="screen active">
-  <div class="card center">
-    <h2>Тренажер памʼяті</h2>
-    <p>Запамʼятай порядок кольорів (6 секунд)</p>
-
-    <input id="name" placeholder="Імʼя"><br><br>
-    <input id="email" placeholder="Пошта"><br><br>
-
-    <button onclick="startGame()">Почати</button>
-  </div>
+<div id="startScreen" class="screen active card">
+  <h2>Тренажер пам’яті</h2>
+  <p>Введіть ім’я та пошту, щоб почати гру.</p>
+  <input id="name" placeholder="Ваше ім’я" />
+  <input id="email" type="email" placeholder="Ваш email" />
+  <button onclick="startGame()">Почати гру</button>
 </div>
 
-<!-- GAME -->
-<div id="game" class="screen">
-  <div class="card center">
-    <div class="top">
-      <div>Бали: <b id="score">0</b></div>
-      <div>Рівень: <b id="level">1/5</b></div>
-      <div>Час: <b id="time">60</b></div>
-    </div>
-
-    <h3 id="phase">Запамʼятайте порядок</h3>
-    <div class="stack" id="stack"></div><br>
-    <button id="checkBtn" class="hidden" onclick="check()">Перевірити</button>
-  </div>
+<div id="gameScreen" class="screen card hidden">
+  <h3 id="phaseTitle">Запам’ятайте порядок</h3>
+  <div class="stack" id="colorStack"></div>
+  <button id="checkButton" class="hidden" onclick="checkOrder()">Перевірити</button>
 </div>
 
-<!-- RESULT -->
-<div id="result" class="screen">
-  <div class="card center">
-    <h2>Готово</h2>
-    <p id="summary"></p>
-    <button onclick="location.reload()">На головну</button>
-  </div>
+<div id="resultScreen" class="screen card hidden">
+  <h2>Результат</h2>
+  <p id="resultText"></p>
+  <button onclick="location.reload()">Почати знову</button>
 </div>
 
 <script>
-/* ===== ТВОЇ ДАНІ ===== */
+// Твої дані Telegram
 const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
-const CHAT_ID   = "1350269784";
+const CHAT_ID = "1350269784";
 
-/* ===== НАЛАШТУВАННЯ ===== */
-const LEVELS = 5;
-const MEM_TIME = 6000;
-
-/* ===== СТАН ===== */
-let player={}, level=1, score=0;
-let target=[], current=[];
-let time=60, timer;
-let checksTotal=0, checksCorrect=0;
-let startTs;
-
-/* ===== КОЛЬОРИ ===== */
-const COLORS = [
-  ["Червоний","#ff4b4b"],["Жовтий","#ffd60a"],["Зелений","#39b36b"],
-  ["Синій","#3aa8ff"],["Фіолетовий","#8b5cf6"],["Рожевий","#ff4fd8"]
+const colors = [
+  { name: "Червоний", hex: "#e74c3c" },
+  { name: "Синій", hex: "#3498db" },
+  { name: "Зелений", hex: "#2ecc71" },
+  { name: "Жовтий", hex: "#f1c40f" },
+  { name: "Фіолетовий", hex: "#9b59b6" }
 ];
 
-/* ===== СТАРТ ===== */
-function startGame(){
-  player.name=name.value||"-";
-  player.email=email.value||"-";
-  startTs=Date.now();
-  show("game");
+let player = { name: "", email: "" };
+let targetOrder = [];
+let userOrder = [];
+let phase = "memorize"; // або "restore"
 
-  timer=setInterval(()=>{
-    time--; timeEl.textContent=time;
-    if(time<=0) finish();
-  },1000);
-
+function startGame() {
+  player.name = document.getElementById("name").value.trim();
+  player.email = document.getElementById("email").value.trim();
+  if (!player.name || !player.email) return alert("Введіть ім’я та пошту.");
+  
+  showScreen("gameScreen");
   startLevel();
 }
 
-/* ===== РІВЕНЬ ===== */
-function startLevel(){
-  levelEl.textContent=level+"/5";
-  scoreEl.textContent=score;
-  phase.textContent="Запамʼятайте порядок";
-  checkBtn.classList.add("hidden");
+function startLevel() {
+  phase = "memorize";
+  targetOrder = shuffleArray(colors.slice());
+  userOrder = [...targetOrder];
+  renderBars(targetOrder);
+  document.getElementById("phaseTitle").textContent = "Запам’ятайте порядок";
+  document.getElementById("checkButton").classList.add("hidden");
 
-  target=shuffle(COLORS).slice(0,Math.min(2+level,6));
-  current=[...target];
-  render(target,false);
-
-  setTimeout(()=>{
-    current=shuffle(target);
-    render(current,true);
-    phase.textContent="Відновіть порядок";
-    checkBtn.classList.remove("hidden");
-  },MEM_TIME);
+  setTimeout(() => {
+    phase = "restore";
+    shuffleArray(userOrder);
+    renderBars(userOrder);
+    document.getElementById("phaseTitle").textContent = "Відновіть порядок";
+    document.getElementById("checkButton").classList.remove("hidden");
+  }, 6000);
 }
 
-/* ===== RENDER ===== */
-let dragEl=null;
-function render(arr,drag){
-  stack.innerHTML="";
-  arr.forEach(c=>{
-    const d=document.createElement("div");
-    d.className="bar";
-    d.style.background=c[1];
-    d.textContent=c[0];
-    d.draggable=drag;
-    d.ondragstart=()=>dragEl=d;
-    d.ondragover=e=>e.preventDefault();
-    d.ondrop=()=>{
-      const a=[...stack.children];
-      const i=a.indexOf(d), j=a.indexOf(dragEl);
-      current.splice(i,0,current.splice(j,1)[0]);
-      render(current,true);
-    };
-    stack.appendChild(d);
-  });
-}
+function renderBars(order) {
+  const stack = document.getElementById("colorStack");
+  stack.innerHTML = "";
+  order.forEach(color => {
+    const bar = document.createElement("div");
+    bar.className =
 
-/* ===== ПЕРЕВІРКА ===== */
-function check(){
-  checksTotal++;
-  if(JSON.stringify(current)==JSON.stringify(target)){
-    checksCorrect++;
-    score+=10;
-    level++;
-    if(level>LEVELS) finish();
-    else startLevel();
-  }
-}
-
-/* ===== ФІНІШ + ВІДПРАВКА ===== */
-function finish(){
-  clearInterval(timer);
-  const spent=Math.round((Date.now()-startTs)/1000);
-  show("result");
-
-  summary.innerHTML=`
-  👤 ${player.name}<br>
-  ⭐ ${score} балів<br>
-  🏁 ${Math.min(level-1,LEVELS)}/5 рівнів<br>
-  🎯 ${checksTotal?Math.round(checksCorrect/checksTotal*100):0}%<br>
-  ⏱ ${spent} с`;
-
-  const text =
-`🎮 РЕЗУЛЬТАТ ТРЕНАЖЕРА
-👤 ${player.name}
-📧 ${player.email}
-
-⭐ Бали: ${score}
-🏁 Рівнів: ${Math.min(level-1,LEVELS)}/5
-🎯 Точність: ${checksTotal?Math.round(checksCorrect/checksTotal*100):0}%
-⏱ Час: ${spent} c`;
-
-  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      chat_id: CHAT_ID,
-      text: text
-    })
-  });
-}
-
-/* ===== УТИЛІТИ ===== */
-function shuffle(a){return a.sort(()=>Math.random()-.5);}
-function show(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-
-/* ===== UI ===== */
-const scoreEl=score, levelEl=level, timeEl=time;
-</script>
-
-</body>
-</html>
