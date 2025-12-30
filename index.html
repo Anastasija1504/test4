@@ -154,7 +154,6 @@
     const MEM_SECONDS = 6;
     const SHOW_RESULT_MS = 3000;
 
-    // ✅ ТУТ ЗМІНА:
     const POINTS_PER_CORRECT = 5;
 
     function barsCountForLevel(lvl){ return Math.min(2 + lvl, 6); }
@@ -192,7 +191,6 @@
     let memorizeTimer = null;
     let memorizeLeft = MEM_SECONDS;
 
-    // статистика
     let levelsChecked = 0;
     let posTotal = 0;
     let posCorrect = 0;
@@ -212,6 +210,7 @@
       return a;
     }
 
+    // ✅ УНІКАЛЬНА ПАЛІТРА
     function palette(){
       return [
         "#ff4b4b","#ff7a18","#ffb000","#ffd60a","#9be15d","#39b36b","#00c2b3",
@@ -221,10 +220,22 @@
       ];
     }
 
+    // ✅ Гарантує: в межах одного рівня НЕ буде повторів
+    function sampleUniqueColors(count){
+      const pal = palette().slice(); // копія
+      if(count > pal.length) count = pal.length;
+      const picked = [];
+      for(let i=0;i<count;i++){
+        const idx = Math.floor(Math.random() * pal.length);
+        picked.push(pal.splice(idx,1)[0]); // вирізаємо => повтор неможливий
+      }
+      return picked;
+    }
+
     function makeLevelBars(lvl){
       const n = barsCountForLevel(lvl);
-      const pal = shuffle(palette()).slice(0,n);
-      return pal.map((hex, idx) => ({ id: `${lvl}-${idx}-${hex}`, hex }));
+      const colors = sampleUniqueColors(n);
+      return colors.map((hex, idx) => ({ id: `${lvl}-${idx}-${hex}`, hex }));
     }
 
     function updateTopbar(){
@@ -279,7 +290,6 @@
         if(m) m.textContent = ok ? "✓" : "✕";
       }
 
-      // ✅ 5 балів за кожну правильну позицію
       score += correctHere * POINTS_PER_CORRECT;
       updateTopbar();
 
@@ -374,7 +384,6 @@
       lockInteraction();
       applyCheckVisualsAndScore();
 
-      // ✅ незалежно від помилки — завжди наступний рівень
       setTimeout(() => {
         level++;
         if(level > TOTAL_LEVELS) finishGame();
