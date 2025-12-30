@@ -6,27 +6,16 @@
   <title>Тренажер памʼяті — порядок кольорів</title>
   <style>
     :root{
-      --bg:#f4f5f7;
-      --card:#fff;
-      --txt:#111;
-      --muted:#666;
-      --accent:#0a5fa5;
-      --shadow:0 8px 24px rgba(0,0,0,.08);
-      --radius:14px;
-      --ok:#39b36b;
-      --bad:#ff4b4b;
-      --top:#2f2f2f;
+      --bg:#f4f5f7; --card:#fff; --txt:#111; --muted:#666;
+      --accent:#0a5fa5; --shadow:0 8px 24px rgba(0,0,0,.08);
+      --radius:14px; --ok:#39b36b; --bad:#ff4b4b; --top:#2f2f2f;
     }
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
     body{margin:0;background:var(--bg);color:var(--txt)}
     .wrap{max-width:980px;margin:0 auto;padding:18px}
     .screen{display:none}
     .screen.active{display:block}
-
-    .card{
-      margin-top:14px;background:var(--card);border-radius:var(--radius);
-      box-shadow:var(--shadow);padding:18px;
-    }
+    .card{margin-top:14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
     .center{text-align:center}
     .h1{font-size:26px;margin:2px 0 8px}
     .sub{color:var(--muted);margin:0 0 14px;line-height:1.35}
@@ -34,8 +23,7 @@
     .topbar{
       height:46px;background:var(--top);color:#fff;
       display:flex;align-items:center;justify-content:space-between;
-      padding:0 14px;border-radius:12px;box-shadow:var(--shadow);
-      gap:10px;
+      padding:0 14px;border-radius:12px;box-shadow:var(--shadow);gap:10px;
     }
     .top-left,.top-mid,.top-right{display:flex;align-items:center;gap:14px;font-size:14px}
     .pill{display:flex;align-items:center;gap:8px;opacity:.95}
@@ -55,68 +43,37 @@
     }
     input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,95,165,.12)}
 
-    .btn{
-      border:0;border-radius:12px;padding:12px 14px;font-weight:700;
-      cursor:pointer;font-size:15px;
-    }
+    .btn{border:0;border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer;font-size:15px}
     .btn.primary{background:var(--accent);color:#fff}
     .btn.primary:hover{filter:brightness(.95)}
     .btn.ghost{background:#eef2f7;color:#111}
     .btn.ghost:hover{filter:brightness(.98)}
     .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
-    .tag{
-      font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;
-      background:#eef2f7;color:#111;
-    }
+    .tag{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:#eef2f7;color:#111}
     .tag.blue{background:rgba(10,95,165,.12);color:#0a5fa5}
     .tag.green{background:rgba(57,179,107,.12);color:#1f7e45}
 
-    .game-title{font-weight:800;margin:6px 0 10px}
-    .phase{
-      font-size:14px;color:var(--muted);
-      display:flex;justify-content:center;gap:10px;align-items:center;
-      margin-bottom:10px;
-    }
-
-    .stack-area{
-      display:flex;justify-content:center;align-items:center;
-      padding:18px 10px;
-      min-height:320px;
-    }
+    .phase{font-size:14px;color:var(--muted);display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:10px}
+    .stack-area{display:flex;justify-content:center;align-items:center;padding:18px 10px;min-height:320px}
     .stack{
-      width:min(260px, 78vw);
-      border-radius:14px;
-      overflow:hidden;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-      border:1px solid #e7eaf0;
-      background:#fff;
+      width:min(260px, 78vw);border-radius:14px;overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);border:1px solid #e7eaf0;background:#fff;
     }
     .bar{
-      height:56px;
-      display:flex;align-items:center;justify-content:center;
-      user-select:none;
-      cursor:grab;
-      position:relative;
-      transition: background-color .18s ease;
+      height:56px;display:flex;align-items:center;justify-content:center;
+      user-select:none;cursor:grab;position:relative;transition: background-color .18s ease;
     }
     .bar.disabled{cursor:default}
-
     .bar.checked.correct{background: var(--ok) !important}
     .bar.checked.wrong{background: var(--bad) !important}
 
     .mark{
-      position:absolute;
-      width:34px;height:34px;border-radius:999px;
-      display:grid;place-items:center;
-      font-weight:900;font-size:18px;
+      position:absolute;width:34px;height:34px;border-radius:999px;
+      display:grid;place-items:center;font-weight:900;font-size:18px;
       right:10px;top:50%;transform:translateY(-50%);
-      color:#fff;
-      background:rgba(0,0,0,.22);
-      backdrop-filter: blur(2px);
-      opacity:0;
-      transition: opacity .12s ease;
-      pointer-events:none;
+      color:#fff;background:rgba(0,0,0,.22);backdrop-filter: blur(2px);
+      opacity:0;transition: opacity .12s ease;pointer-events:none;
     }
     .bar.checked .mark{opacity:1}
     .small{font-size:12px;color:var(--muted)}
@@ -125,23 +82,22 @@
 <body>
   <div class="wrap">
 
-    <!-- START -->
     <section id="startScreen" class="screen active">
       <div class="card center">
         <div class="h1">Тренажер памʼяті</div>
         <p class="sub">
           6 секунд на запамʼятовування. Потім перетягніть смужки й натисніть «Перевірити».
-          Після перевірки 3 секунди видно результат і автоматично наступний рівень.
+          Після перевірки 3 секунди видно ✓/✕ і одразу наступний рівень.
         </p>
 
         <form id="startForm" class="form" autocomplete="on">
           <div>
             <label for="name">Імʼя</label>
-            <input id="name" placeholder="Напр.: Анастасія" required maxlength="40" />
+            <input id="name" required maxlength="40" />
           </div>
           <div>
             <label for="email">Пошта</label>
-            <input id="email" type="email" placeholder="name@example.com" required maxlength="80" />
+            <input id="email" type="email" required maxlength="80" />
           </div>
           <button class="btn primary" type="submit">Почати гру</button>
           <div class="small center">Дані зберігаються лише у вашому браузері (localStorage).</div>
@@ -149,22 +105,15 @@
       </div>
     </section>
 
-    <!-- GAME -->
     <section id="gameScreen" class="screen">
       <div class="topbar">
-        <div class="top-left">
-          <div class="pill">Бали: <b id="score">0</b></div>
-        </div>
-        <div class="top-mid">
-          <div class="pill">Рівень: <b id="levelLabel">1/5</b></div>
-        </div>
-        <div class="top-right">
-          <button class="btn-icon" id="btnExit" title="Вийти">✕</button>
-        </div>
+        <div class="top-left"><div class="pill">Бали: <b id="score">0</b></div></div>
+        <div class="top-mid"><div class="pill">Рівень: <b id="levelLabel">1/5</b></div></div>
+        <div class="top-right"><button class="btn-icon" id="btnExit" title="Вийти">✕</button></div>
       </div>
 
       <div class="card center">
-        <div class="game-title">Відсортуйте кольори</div>
+        <div style="font-weight:800;margin:6px 0 10px">Відсортуйте кольори</div>
 
         <div class="phase">
           <span class="tag blue" id="phaseTag">Запамʼятайте порядок</span>
@@ -179,13 +128,10 @@
           <button class="btn primary" id="btnCheck" type="button" style="display:none">Перевірити</button>
         </div>
 
-        <div class="small" style="margin-top:10px">
-          За кожну смужку на правильному місці нараховується 1 бал.
-        </div>
+        <div class="small" style="margin-top:10px">Бали: +1 за кожну смужку на правильній позиції.</div>
       </div>
     </section>
 
-    <!-- RESULT -->
     <section id="resultScreen" class="screen">
       <div class="card center">
         <div class="h1">Результат</div>
@@ -195,36 +141,22 @@
           <button class="btn primary" id="btnPlayAgain" type="button">Зіграти ще раз</button>
           <button class="btn ghost" id="btnBackHome" type="button">На головну</button>
         </div>
-
-        <div class="small" style="margin-top:10px">
-          Результат відправлено вам у Telegram.
-        </div>
       </div>
     </section>
 
   </div>
 
   <script>
-    // ==========================
-    // ТВОЇ ДАНІ (Telegram напряму)
-    // ==========================
+    // Telegram (як ти просила — напряму)
     const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
     const CHAT_ID   = "1350269784";
 
-    // ==========================
-    // НАЛАШТУВАННЯ
-    // ==========================
     const TOTAL_LEVELS = 5;
     const MEM_SECONDS = 6;
     const SHOW_RESULT_MS = 3000;
 
-    function barsCountForLevel(lvl){
-      return Math.min(2 + lvl, 6); // 3..6
-    }
+    function barsCountForLevel(lvl){ return Math.min(2 + lvl, 6); }
 
-    // ==========================
-    // UI
-    // ==========================
     const startScreen = document.getElementById('startScreen');
     const gameScreen  = document.getElementById('gameScreen');
     const resultScreen= document.getElementById('resultScreen');
@@ -247,29 +179,23 @@
     const btnPlayAgain = document.getElementById('btnPlayAgain');
     const btnBackHome  = document.getElementById('btnBackHome');
 
-    // ==========================
-    // STATE
-    // ==========================
     let player = { name:'', email:'' };
     let level = 1;
     let score = 0;
 
-    let target = [];   // [{id,hex},...]
+    let target = [];
     let current = [];
     let phase = 'memorize'; // memorize | restore | locked
 
     let memorizeTimer = null;
     let memorizeLeft = MEM_SECONDS;
 
-    // статистика для точності
-    let levelsChecked = 0;     // скільки разів натиснули "Перевірити" (рівнів)
-    let posTotal = 0;          // загальна кількість позицій
-    let posCorrect = 0;        // правильно розставлених позицій
+    // статистика
+    let levelsChecked = 0;
+    let posTotal = 0;
+    let posCorrect = 0;
     let startTimestamp = 0;
 
-    // ==========================
-    // HELPERS
-    // ==========================
     function showScreen(which){
       [startScreen, gameScreen, resultScreen].forEach(s => s.classList.remove('active'));
       which.classList.add('active');
@@ -286,12 +212,10 @@
 
     function palette(){
       return [
-        "#ff4b4b", "#ff7a18", "#ffb000", "#ffd60a",
-        "#9be15d", "#39b36b", "#00c2b3", "#3aa8ff",
-        "#2f6bff", "#8b5cf6", "#b5179e", "#ff4fd8",
-        "#ff6fb1", "#7f5539", "#b07a4a", "#94a3b8",
-        "#0ea5e9", "#10b981", "#f97316", "#ef4444",
-        "#a78bfa", "#22c55e", "#06b6d4", "#fb7185"
+        "#ff4b4b","#ff7a18","#ffb000","#ffd60a","#9be15d","#39b36b","#00c2b3",
+        "#3aa8ff","#2f6bff","#8b5cf6","#b5179e","#ff4fd8","#ff6fb1",
+        "#7f5539","#b07a4a","#94a3b8","#0ea5e9","#10b981","#f97316","#ef4444",
+        "#a78bfa","#22c55e","#06b6d4","#fb7185"
       ];
     }
 
@@ -306,9 +230,7 @@
       levelLabelEl.textContent = `${level}/${TOTAL_LEVELS}`;
     }
 
-    // ==========================
-    // RENDER + DND
-    // ==========================
+    // Render
     function renderBars(list, interactive){
       stackEl.innerHTML = "";
       list.forEach((item) => {
@@ -321,7 +243,6 @@
 
         const mark = document.createElement('div');
         mark.className = 'mark';
-        mark.textContent = "";
         div.appendChild(mark);
 
         if(interactive) addDnDHandlers(div);
@@ -334,8 +255,7 @@
     function lockInteraction(){
       phase = 'locked';
       btnCheck.disabled = true;
-      const nodes = [...stackEl.children];
-      for(const el of nodes){
+      for(const el of [...stackEl.children]){
         el.draggable = false;
         el.classList.add('disabled');
       }
@@ -343,11 +263,11 @@
 
     function applyCheckVisualsAndScore(){
       const nodes = [...stackEl.children];
-
       let correctHere = 0;
+
       for(let i=0;i<nodes.length;i++){
         const ok = current[i].id === target[i].id;
-        if(ok) correctHere += 1;
+        if(ok) correctHere++;
 
         const el = nodes[i];
         el.classList.add('checked');
@@ -358,16 +278,14 @@
         if(m) m.textContent = ok ? "✓" : "✕";
       }
 
-      // часткові бали: +1 за кожну правильну позицію
+      // часткові бали
       score += correctHere;
       updateTopbar();
 
-      // статистика точності
-      levelsChecked += 1;
+      // статистика
+      levelsChecked++;
       posTotal += nodes.length;
       posCorrect += correctHere;
-
-      return correctHere;
     }
 
     let dragId = null;
@@ -404,9 +322,6 @@
       });
     }
 
-    // ==========================
-    // PHASE CONTROL
-    // ==========================
     function stopMemorizeTimer(){
       if(memorizeTimer){ clearInterval(memorizeTimer); memorizeTimer = null; }
     }
@@ -415,6 +330,7 @@
       phase = 'memorize';
       phaseTag.textContent = "Запамʼятайте порядок";
       phaseTag.className = "tag blue";
+
       memorizeLeft = MEM_SECONDS;
       phaseHint.textContent = String(memorizeLeft);
 
@@ -423,7 +339,7 @@
 
       stopMemorizeTimer();
       memorizeTimer = setInterval(() => {
-        memorizeLeft -= 1;
+        memorizeLeft--;
         phaseHint.textContent = String(Math.max(0, memorizeLeft));
         if(memorizeLeft <= 0){
           stopMemorizeTimer();
@@ -435,7 +351,6 @@
     function setPhaseRestore(){
       phase = 'restore';
       phaseTag.textContent = "Відновіть порядок";
-      phaseTag.className = "tag.green";
       phaseTag.className = "tag green";
       phaseHint.textContent = "Натисніть «Перевірити»";
 
@@ -446,14 +361,10 @@
       btnCheck.disabled = false;
     }
 
-    // ==========================
-    // GAME FLOW
-    // ==========================
     function beginLevel(){
       updateTopbar();
       target = makeLevelBars(level);
       current = target.slice();
-
       renderBars(target, false);
       setPhaseMemorize();
     }
@@ -461,18 +372,14 @@
     function onCheck(){
       if(phase !== 'restore') return;
 
-      // блокуємо і показуємо результат
       lockInteraction();
       applyCheckVisualsAndScore();
 
-      // 3 секунди показу -> далі завжди наступний рівень (або фініш)
+      // ВАЖЛИВО: незалежно від помилки — завжди йдемо далі
       setTimeout(() => {
-        level += 1;
-        if(level > TOTAL_LEVELS){
-          finishGame();
-        } else {
-          beginLevel();
-        }
+        level++;
+        if(level > TOTAL_LEVELS) finishGame();
+        else beginLevel();
       }, SHOW_RESULT_MS);
     }
 
@@ -505,8 +412,8 @@
 ⭐ Бали: ${score}
 🏁 Рівнів: ${TOTAL_LEVELS}/${TOTAL_LEVELS}
 
-🎯 Точність (позиції): ${acc}%
 ✅ Правильних позицій: ${posCorrect}/${posTotal}
+🎯 Точність (позиції): ${acc}%
 🔁 Перевірок (рівнів): ${levelsChecked}
 
 ⏱ Час (сек): ${elapsed}`;
@@ -527,9 +434,7 @@
       beginLevel();
     }
 
-    // ==========================
     // EVENTS
-    // ==========================
     startForm.addEventListener('submit', (e) => {
       e.preventDefault();
       player.name = (inName.value || "").trim();
