@@ -55,14 +55,19 @@
     .tag.green{background:rgba(57,179,107,.12);color:#1f7e45}
 
     .phase{font-size:14px;color:var(--muted);display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:10px}
+
     .stack-area{display:flex;justify-content:center;align-items:center;padding:18px 10px;min-height:320px}
     .stack{
-      width:min(260px, 78vw);border-radius:14px;overflow:hidden;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);border:1px solid #e7eaf0;background:#fff;
+      width:min(280px, 80vw);
+      border-radius:14px;overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+      border:1px solid #e7eaf0;background:#fff;
     }
     .bar{
-      height:56px;display:flex;align-items:center;justify-content:center;
-      user-select:none;cursor:grab;position:relative;transition: background-color .18s ease;
+      height:56px;
+      display:flex;align-items:center;justify-content:center;
+      user-select:none;cursor:grab;position:relative;
+      transition: background-color .18s ease;
     }
     .bar.disabled{cursor:default}
     .bar.checked.correct{background: var(--ok) !important}
@@ -76,12 +81,14 @@
       opacity:0;transition: opacity .12s ease;pointer-events:none;
     }
     .bar.checked .mark{opacity:1}
+
     .small{font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
   <div class="wrap">
 
+    <!-- START -->
     <section id="startScreen" class="screen active">
       <div class="card center">
         <div class="h1">Тренажер памʼяті</div>
@@ -105,6 +112,7 @@
       </div>
     </section>
 
+    <!-- GAME -->
     <section id="gameScreen" class="screen">
       <div class="topbar">
         <div class="top-left"><div class="pill">Бали: <b id="score">0</b></div></div>
@@ -132,6 +140,7 @@
       </div>
     </section>
 
+    <!-- RESULT -->
     <section id="resultScreen" class="screen">
       <div class="card center">
         <div class="h1">Результат</div>
@@ -147,17 +156,23 @@
   </div>
 
   <script>
-    const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
+    // ===== Telegram (встав свій токен тут локально) =====
+    const BOT_TOKEN = "PASTE_YOUR_BOT_TOKEN_HERE";
     const CHAT_ID   = "1350269784";
 
+    // ===== Налаштування гри =====
     const TOTAL_LEVELS = 5;
     const MEM_SECONDS = 6;
     const SHOW_RESULT_MS = 3000;
-
     const POINTS_PER_CORRECT = 5;
+
+    // анти-“схожі” кольори
+    const MIN_DIST_ANY = 120; // між будь-якими двома кольорами в рівні
+    const MIN_DIST_ADJ = 160; // між сусідами
 
     function barsCountForLevel(lvl){ return Math.min(2 + lvl, 6); }
 
+    // ===== UI =====
     const startScreen = document.getElementById('startScreen');
     const gameScreen  = document.getElementById('gameScreen');
     const resultScreen= document.getElementById('resultScreen');
@@ -180,6 +195,7 @@
     const btnPlayAgain = document.getElementById('btnPlayAgain');
     const btnBackHome  = document.getElementById('btnBackHome');
 
+    // ===== State =====
     let player = { name:'', email:'' };
     let level = 1;
     let score = 0;
@@ -196,6 +212,7 @@
     let posCorrect = 0;
     let startTimestamp = 0;
 
+    // ===== Helpers =====
     function showScreen(which){
       [startScreen, gameScreen, resultScreen].forEach(s => s.classList.remove('active'));
       which.classList.add('active');
@@ -210,39 +227,96 @@
       return a;
     }
 
-    // ✅ УНІКАЛЬНА ПАЛІТРА
-    function palette(){
-      return [
-        "#ff4b4b","#ff7a18","#ffb000","#ffd60a","#9be15d","#39b36b","#00c2b3",
-        "#3aa8ff","#2f6bff","#8b5cf6","#b5179e","#ff4fd8","#ff6fb1",
-        "#7f5539","#b07a4a","#94a3b8","#0ea5e9","#10b981","#f97316","#ef4444",
-        "#a78bfa","#22c55e","#06b6d4","#fb7185"
-      ];
-    }
-
-    // ✅ Гарантує: в межах одного рівня НЕ буде повторів
-    function sampleUniqueColors(count){
-      const pal = palette().slice(); // копія
-      if(count > pal.length) count = pal.length;
-      const picked = [];
-      for(let i=0;i<count;i++){
-        const idx = Math.floor(Math.random() * pal.length);
-        picked.push(pal.splice(idx,1)[0]); // вирізаємо => повтор неможливий
-      }
-      return picked;
-    }
-
-    function makeLevelBars(lvl){
-      const n = barsCountForLevel(lvl);
-      const colors = sampleUniqueColors(n);
-      return colors.map((hex, idx) => ({ id: `${lvl}-${idx}-${hex}`, hex }));
-    }
-
     function updateTopbar(){
       scoreEl.textContent = String(score);
       levelLabelEl.textContent = `${level}/${TOTAL_LEVELS}`;
     }
 
+    // ===== Color utils =====
+    function hexToRgb(hex){
+      const h = hex.replace("#","").trim();
+      const x = parseInt(h.length === 3 ? h.split("").map(c=>c+c).join("") : h, 16);
+      return { r:(x>>16)&255, g:(x>>8)&255, b:x&255 };
+    }
+    function colorDist(aHex, bHex){
+      const a = hexToRgb(aHex), b = hexToRgb(bHex);
+      const dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b;
+      return Math.sqrt(dr*dr + dg*dg + db*db);
+    }
+
+    function palette(){
+      // підібрана різноманітна палітра (унікальні значення)
+      return [
+        "#E53935","#D81B60","#8E24AA","#5E35B1","#3949AB",
+        "#1E88E5","#039BE5","#00ACC1","#00897B","#43A047",
+        "#7CB342","#C0CA33","#FDD835","#FFB300","#FB8C00",
+        "#F4511E","#6D4C41","#546E7A","#26C6DA","#66BB6A",
+        "#AB47BC","#EC407A","#42A5F5","#26A69A"
+      ];
+    }
+
+    function sampleUniqueNonSimilarColors(count){
+      let pal = palette().slice();
+
+      // перемішуємо, щоб вибір був випадковий
+      pal = shuffle(pal);
+
+      // 1) беремо кольори так, щоб вони НЕ були схожими між собою
+      const picked = [];
+      for(const c of pal){
+        if(picked.length >= count) break;
+        let ok = true;
+        for(const p of picked){
+          if(colorDist(p, c) < MIN_DIST_ANY){ ok = false; break; }
+        }
+        if(ok) picked.push(c);
+      }
+
+      // якщо надто жорстко і не набрали — трохи послаблюємо добір (але без повторів)
+      if(picked.length < count){
+        const rest = pal.filter(x => !picked.includes(x));
+        while(picked.length < count && rest.length){
+          picked.push(rest.shift());
+        }
+      }
+
+      return picked.slice(0, count);
+    }
+
+    function arrangeNonSimilarOrder(colors){
+      // пробуємо багато разів знайти порядок без “схожих сусідів”
+      let best = null, bestMin = -1;
+
+      for(let t=0; t<2500; t++){
+        const cand = shuffle(colors);
+        let minAdj = Infinity;
+        let ok = true;
+
+        for(let i=1;i<cand.length;i++){
+          const d = colorDist(cand[i-1], cand[i]);
+          minAdj = Math.min(minAdj, d);
+          if(d < MIN_DIST_ADJ){ ok = false; break; }
+        }
+
+        if(ok) return cand;
+        if(minAdj > bestMin){ bestMin = minAdj; best = cand; }
+      }
+      return best || colors;
+    }
+
+    function makeLevelBars(lvl){
+      const n = barsCountForLevel(lvl);
+
+      // 2) гарантовано різні + не схожі
+      const picked = sampleUniqueNonSimilarColors(n);
+
+      // 3) розставляємо так, щоб сусіди теж не були схожі
+      const ordered = arrangeNonSimilarOrder(picked);
+
+      return ordered.map((hex, idx) => ({ id: `${lvl}-${idx}-${hex}`, hex }));
+    }
+
+    // ===== Render + DnD =====
     function renderBars(list, interactive){
       stackEl.innerHTML = "";
       list.forEach((item) => {
@@ -255,6 +329,7 @@
 
         const mark = document.createElement('div');
         mark.className = 'mark';
+        mark.textContent = "";
         div.appendChild(mark);
 
         if(interactive) addDnDHandlers(div);
@@ -331,6 +406,7 @@
       });
     }
 
+    // ===== Phases =====
     function stopMemorizeTimer(){
       if(memorizeTimer){ clearInterval(memorizeTimer); memorizeTimer = null; }
     }
@@ -370,6 +446,7 @@
       btnCheck.disabled = false;
     }
 
+    // ===== Flow =====
     function beginLevel(){
       updateTopbar();
       target = makeLevelBars(level);
@@ -384,6 +461,7 @@
       lockInteraction();
       applyCheckVisualsAndScore();
 
+      // завжди наступний рівень (не завершуємо на помилці)
       setTimeout(() => {
         level++;
         if(level > TOTAL_LEVELS) finishGame();
@@ -392,6 +470,7 @@
     }
 
     async function sendResultToTelegram(text){
+      if(!BOT_TOKEN || BOT_TOKEN === "PASTE_YOUR_BOT_TOKEN_HERE") return;
       const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
       try{
         await fetch(url, {
@@ -439,6 +518,7 @@
       beginLevel();
     }
 
+    // ===== Events =====
     startForm.addEventListener('submit', (e) => {
       e.preventDefault();
       player.name = (inName.value || "").trim();
