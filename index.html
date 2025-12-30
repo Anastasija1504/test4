@@ -128,7 +128,7 @@
           <button class="btn primary" id="btnCheck" type="button" style="display:none">Перевірити</button>
         </div>
 
-        <div class="small" style="margin-top:10px">Бали: +1 за кожну смужку на правильній позиції.</div>
+        <div class="small" style="margin-top:10px">Бали: +5 за кожну смужку на правильній позиції.</div>
       </div>
     </section>
 
@@ -147,13 +147,15 @@
   </div>
 
   <script>
-    // Telegram (як ти просила — напряму)
     const BOT_TOKEN = "8334284872:AAERmb4ewIUBrVR22xCiM30WEejhyPUlxIY";
     const CHAT_ID   = "1350269784";
 
     const TOTAL_LEVELS = 5;
     const MEM_SECONDS = 6;
     const SHOW_RESULT_MS = 3000;
+
+    // ✅ ТУТ ЗМІНА:
+    const POINTS_PER_CORRECT = 5;
 
     function barsCountForLevel(lvl){ return Math.min(2 + lvl, 6); }
 
@@ -230,7 +232,6 @@
       levelLabelEl.textContent = `${level}/${TOTAL_LEVELS}`;
     }
 
-    // Render
     function renderBars(list, interactive){
       stackEl.innerHTML = "";
       list.forEach((item) => {
@@ -278,18 +279,16 @@
         if(m) m.textContent = ok ? "✓" : "✕";
       }
 
-      // часткові бали
-      score += correctHere;
+      // ✅ 5 балів за кожну правильну позицію
+      score += correctHere * POINTS_PER_CORRECT;
       updateTopbar();
 
-      // статистика
       levelsChecked++;
       posTotal += nodes.length;
       posCorrect += correctHere;
     }
 
     let dragId = null;
-
     function addDnDHandlers(el){
       el.addEventListener('dragstart', (e) => {
         if(phase !== 'restore') return e.preventDefault();
@@ -375,7 +374,7 @@
       lockInteraction();
       applyCheckVisualsAndScore();
 
-      // ВАЖЛИВО: незалежно від помилки — завжди йдемо далі
+      // ✅ незалежно від помилки — завжди наступний рівень
       setTimeout(() => {
         level++;
         if(level > TOTAL_LEVELS) finishGame();
@@ -396,7 +395,6 @@
 
     function finishGame(){
       stopMemorizeTimer();
-
       const elapsed = Math.round((Date.now() - startTimestamp)/1000);
       const acc = posTotal === 0 ? 0 : Math.round((posCorrect / posTotal) * 100);
 
@@ -424,17 +422,14 @@
     function resetGame(){
       level = 1;
       score = 0;
-
       levelsChecked = 0;
       posTotal = 0;
       posCorrect = 0;
-
       startTimestamp = Date.now();
       updateTopbar();
       beginLevel();
     }
 
-    // EVENTS
     startForm.addEventListener('submit', (e) => {
       e.preventDefault();
       player.name = (inName.value || "").trim();
